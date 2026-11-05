@@ -1,0 +1,12 @@
+{
+  "name": "posts-object-level-auth",
+  "version": "1.0.0",
+  "description": "Companion repo: authorization rules that stop users editing each other's posts",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-reporter=spec"
+  }
+}
