@@ -28,7 +28,10 @@ export function createApp(db) {
   app.patch('/posts/:id', requireAuth, (req, res) => {
     const post = findPost(db, req.params.id);
     if (!post) return res.status(404).json({ error: 'Not found' });
-    res.json(updatePost(db, post.id, req.body));
+    if (post.authorId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const { title, body, status } = req.body; // only fields an author may change
+    res.json(updatePost(db, post.id, { title, body, status }));
   });
 
   app.delete('/posts/:id', requireAuth, (req, res) => {
