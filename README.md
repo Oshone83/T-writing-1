@@ -45,5 +45,8 @@ curl -X PATCH localhost:3000/posts/1 \
   `http.createServer(createApp(db))`.
 - `src/db.js`: schema, seed data and query helpers.
 - `src/auth.js`: sessions, `requireAuth` (401) and `requireAdmin` (403).
-- `src/app.js`: the routes.
+- `src/app.js`: the routes, plus `deny()` (403 if you can read the post, 404 if you can't).
+- `src/policies/post.js`: `can()` and `scopePosts()`, every post rule in one file (`after` tag).
+- `src/pick.js`: copies only allowlisted fields from the request body (`after` tag).
 - `test/http.test.js`: the 17-row access table, one HTTP request per row, with a fresh database for each.
+- `test/policy.test.js`: 13 unit tests for `can()` with no server (`after` tag).
