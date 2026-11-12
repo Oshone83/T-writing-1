@@ -1,0 +1,25 @@
+{
+  "name": "stripe-polling-vs-webhooks",
+  "version": "1.0.0",
+  "description": "Companion repo: I replaced payment polling with webhooks, then killed the endpoint",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20.6" },
+  "scripts": {
+    "receiver": "node --env-file=.env receiver.js",
+    "poll": "node --env-file=.env poll.js",
+    "reconcile": "node --env-file=.env reconcile.js",
+    "payments": "node --env-file=.env create-payments.js",
+    "analyze": "node analyze.js",
+    "chart": "node chart.js",
+    "outage": "node --env-file=.env outage.js",
+    "simulate-loss": "node --env-file=.env simulate-loss.js",
+    "versions": "node versions.js",
+    "test": "node --test --test-reporter=spec test/*.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.1.1",
+    "express": "^5.3.0",
+    "stripe": "^23.1.0"
+  }
+}
