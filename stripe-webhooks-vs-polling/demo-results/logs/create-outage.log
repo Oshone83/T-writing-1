@@ -1,0 +1,5 @@
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+#1 pi_fake000068 succeeded at 2026-11-12T16:39:36.181Z
+#2 pi_fake000071 succeeded at 2026-11-12T16:39:37.596Z
+#3 pi_fake000074 succeeded at 2026-11-12T16:39:38.742Z
+done: 3 succeeded, 0 failed (phase=outage)

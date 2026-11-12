@@ -1,0 +1,2 @@
+forgot evt_fake000075 (payment pi_fake000074): 1 processed_events row, 1 seen row deleted
+Now run: node reconcile.js

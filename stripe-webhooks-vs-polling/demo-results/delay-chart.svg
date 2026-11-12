@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" font-family="system-ui, -apple-system, Segoe UI, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">Delay from payment created to app knows, per payment</title>
+<desc id="d">One mark per payment and method. Circles: polling every 60 s. Squares: webhook.</desc>
+<style>
+  svg { --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e4e3df; --poll:#2a78d6; --webhook:#eb6834; }
+  @media (prefers-color-scheme: dark) { svg { --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#3a3936; --poll:#3987e5; --webhook:#d95926; } }
+  .bg { fill: var(--surface); } .title { fill: var(--ink); font-size: 17px; font-weight: 600; }
+  .sub, .tick, .axis-label, .legend { fill: var(--ink2); font-size: 12px; }
+  .grid { stroke: var(--grid); stroke-width: 1; } .zero { stroke: var(--ink2); stroke-width: 1; }
+  .poll { fill: var(--poll); stroke: var(--surface); stroke-width: 2; }
+  .webhook { fill: var(--webhook); stroke: var(--surface); stroke-width: 2; }
+  circle:hover, rect:hover { stroke: var(--ink); }
+</style>
+<rect class="bg" width="900" height="440"/>
+<text class="title" x="64" y="28">Delay from payment created to app knows, per payment</text>
+<text class="sub" x="64" y="48">20 payments · delay = app knows − create call returned · SIMULATED against a local fake Stripe on a compressed timescale. NOT real Stripe data; do not publish these numbers.</text>
+<g transform="translate(646, 40)">
+  <circle class="poll" cx="6" cy="0" r="4.5"/><text class="legend" x="16" y="4">Polling</text>
+  <rect class="webhook" x="80" y="-4" width="8" height="8" rx="1.5"/><text class="legend" x="94" y="4">Webhook</text>
+</g>
+<line class="zero" x1="64" x2="876" y1="384.0" y2="384.0"/><text class="tick" x="56" y="388.0" text-anchor="end">0</text>
+<line class="grid" x1="64" x2="876" y1="352.8" y2="352.8"/><text class="tick" x="56" y="356.8" text-anchor="end">1</text>
+<line class="grid" x1="64" x2="876" y1="321.6" y2="321.6"/><text class="tick" x="56" y="325.6" text-anchor="end">2</text>
+<line class="grid" x1="64" x2="876" y1="290.4" y2="290.4"/><text class="tick" x="56" y="294.4" text-anchor="end">3</text>
+<line class="grid" x1="64" x2="876" y1="259.2" y2="259.2"/><text class="tick" x="56" y="263.2" text-anchor="end">4</text>
+<line class="grid" x1="64" x2="876" y1="228.0" y2="228.0"/><text class="tick" x="56" y="232.0" text-anchor="end">5</text>
+<line class="grid" x1="64" x2="876" y1="196.8" y2="196.8"/><text class="tick" x="56" y="200.8" text-anchor="end">6</text>
+<line class="grid" x1="64" x2="876" y1="165.6" y2="165.6"/><text class="tick" x="56" y="169.6" text-anchor="end">7</text>
+<line class="grid" x1="64" x2="876" y1="134.4" y2="134.4"/><text class="tick" x="56" y="138.4" text-anchor="end">8</text>
+<line class="grid" x1="64" x2="876" y1="103.2" y2="103.2"/><text class="tick" x="56" y="107.2" text-anchor="end">9</text>
+<line class="grid" x1="64" x2="876" y1="72.0" y2="72.0"/><text class="tick" x="56" y="76.0" text-anchor="end">10</text>
+<text class="tick" x="64.0" y="402" text-anchor="middle">0</text>
+<text class="tick" x="470.0" y="402" text-anchor="middle">0.5</text>
+<text class="tick" x="876.0" y="402" text-anchor="middle">1</text>
+<text class="axis-label" x="470" y="426" text-anchor="middle">Minutes since the first payment was created</text>
+<text class="axis-label" transform="translate(18 228) rotate(-90)" text-anchor="middle">Delay (s)</text>
+<circle class="poll" cx="64.0" cy="118.6" r="4.5"><title>Polling · pi_fake000002
+created 2026-11-12T16:38:32.107Z
+delay 8.51 s</title></circle>
+<circle class="poll" cx="87.5" cy="172.9" r="4.5"><title>Polling · pi_fake000005
+created 2026-11-12T16:38:33.846Z
+delay 6.77 s</title></circle>
+<circle class="poll" cx="138.0" cy="289.2" r="4.5"><title>Polling · pi_fake000008
+created 2026-11-12T16:38:37.574Z
+delay 3.04 s</title></circle>
+<circle class="poll" cx="157.3" cy="333.7" r="4.5"><title>Polling · pi_fake000011
+created 2026-11-12T16:38:39.000Z
+delay 1.61 s</title></circle>
+<circle class="poll" cx="202.3" cy="125.3" r="4.5"><title>Polling · pi_fake000015
+created 2026-11-12T16:38:42.326Z
+delay 8.29 s</title></circle>
+<circle class="poll" cx="242.4" cy="217.7" r="4.5"><title>Polling · pi_fake000018
+created 2026-11-12T16:38:45.287Z
+delay 5.33 s</title></circle>
+<circle class="poll" cx="294.4" cy="337.6" r="4.5"><title>Polling · pi_fake000021
+created 2026-11-12T16:38:49.129Z
+delay 1.49 s</title></circle>
+<circle class="poll" cx="312.7" cy="379.8" r="4.5"><title>Polling · pi_fake000024
+created 2026-11-12T16:38:50.482Z
+delay 0.14 s</title></circle>
+<circle class="poll" cx="362.7" cy="183.0" r="4.5"><title>Polling · pi_fake000028
+created 2026-11-12T16:38:54.179Z
+delay 6.44 s</title></circle>
+<circle class="poll" cx="378.9" cy="220.4" r="4.5"><title>Polling · pi_fake000031
+created 2026-11-12T16:38:55.377Z
+delay 5.24 s</title></circle>
+<circle class="poll" cx="412.6" cy="298.2" r="4.5"><title>Polling · pi_fake000034
+created 2026-11-12T16:38:57.869Z
+delay 2.75 s</title></circle>
+<circle class="poll" cx="455.8" cy="85.5" r="4.5"><title>Polling · pi_fake000038
+created 2026-11-12T16:39:01.057Z
+delay 9.57 s</title></circle>
+<circle class="poll" cx="482.7" cy="147.4" r="4.5"><title>Polling · pi_fake000041
+created 2026-11-12T16:39:03.042Z
+delay 7.58 s</title></circle>
+<circle class="poll" cx="521.8" cy="237.6" r="4.5"><title>Polling · pi_fake000044
+created 2026-11-12T16:39:05.932Z
+delay 4.69 s</title></circle>
+<circle class="poll" cx="571.0" cy="351.1" r="4.5"><title>Polling · pi_fake000047
+created 2026-11-12T16:39:09.569Z
+delay 1.06 s</title></circle>
+<circle class="poll" cx="624.1" cy="161.4" r="4.5"><title>Polling · pi_fake000051
+created 2026-11-12T16:39:13.493Z
+delay 7.13 s</title></circle>
+<circle class="poll" cx="676.5" cy="282.1" r="4.5"><title>Polling · pi_fake000054
+created 2026-11-12T16:39:17.362Z
+delay 3.27 s</title></circle>
+<circle class="poll" cx="705.5" cy="349.0" r="4.5"><title>Polling · pi_fake000057
+created 2026-11-12T16:39:19.506Z
+delay 1.12 s</title></circle>
+<circle class="poll" cx="756.7" cy="155.0" r="4.5"><title>Polling · pi_fake000061
+created 2026-11-12T16:39:23.291Z
+delay 7.34 s</title></circle>
+<circle class="poll" cx="780.0" cy="208.6" r="4.5"><title>Polling · pi_fake000064
+created 2026-11-12T16:39:25.011Z
+delay 5.62 s</title></circle>
+<rect class="webhook" x="60.0" y="378.0" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000002
+created 2026-11-12T16:38:32.107Z
+delay 0.06 s</title></rect>
+<rect class="webhook" x="83.5" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000005
+created 2026-11-12T16:38:33.846Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="134.0" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000008
+created 2026-11-12T16:38:37.574Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="153.3" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000011
+created 2026-11-12T16:38:39.000Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="198.3" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000015
+created 2026-11-12T16:38:42.326Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="238.4" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000018
+created 2026-11-12T16:38:45.287Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="290.4" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000021
+created 2026-11-12T16:38:49.129Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="308.7" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000024
+created 2026-11-12T16:38:50.482Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="358.7" y="378.3" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000028
+created 2026-11-12T16:38:54.179Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="374.9" y="378.3" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000031
+created 2026-11-12T16:38:55.377Z
+delay 0.06 s</title></rect>
+<rect class="webhook" x="408.6" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000034
+created 2026-11-12T16:38:57.869Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="451.8" y="378.3" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000038
+created 2026-11-12T16:39:01.057Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="478.7" y="378.3" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000041
+created 2026-11-12T16:39:03.042Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="517.8" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000044
+created 2026-11-12T16:39:05.932Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="567.0" y="378.3" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000047
+created 2026-11-12T16:39:09.569Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="620.1" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000051
+created 2026-11-12T16:39:13.493Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="672.5" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000054
+created 2026-11-12T16:39:17.362Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="701.5" y="378.4" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000057
+created 2026-11-12T16:39:19.506Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="752.7" y="378.3" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000061
+created 2026-11-12T16:39:23.291Z
+delay 0.05 s</title></rect>
+<rect class="webhook" x="776.0" y="378.3" width="8" height="8" rx="1.5"><title>Webhook · pi_fake000064
+created 2026-11-12T16:39:25.011Z
+delay 0.05 s</title></rect>
+</svg>

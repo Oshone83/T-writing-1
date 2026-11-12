@@ -1,0 +1,9 @@
+# crontab -e, then paste these with your real path. Logs go to logs/ (create it first: mkdir -p logs).
+# The scripts load .env themselves, so cron needs no environment setup. Use the full path to node
+# if cron can't find it (run `which node`).
+
+# Phase 1 and 2 (measuring polling): the 60-second poller.
+* * * * * cd /path/to/stripe-webhooks-vs-polling && node poll.js >> logs/poll.log 2>&1
+
+# What I run now: the hourly catch-up job instead of the poller.
+# 0 * * * * cd /path/to/stripe-webhooks-vs-polling && node reconcile.js >> logs/reconcile.log 2>&1
