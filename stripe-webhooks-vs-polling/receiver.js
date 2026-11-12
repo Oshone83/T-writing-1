@@ -1,6 +1,9 @@
 // receiver.js — the webhook version: one Express route.
 //
-//   node receiver.js        listens on PORT (default 3000), path /webhooks/stripe
+//   node receiver.js        listens on HOST:PORT (default 127.0.0.1:3000), path /webhooks/stripe
+//
+// It listens on localhost only: the tunnel (or Codespaces port forwarding) connects locally,
+// so nothing else on your network can reach it directly.
 import express from 'express';
 import Stripe from 'stripe';
 import fs from 'node:fs';
@@ -56,7 +59,9 @@ export function createApp({ db, endpointSecret, requestLog, log = console.log })
     let isNew;
     try {
       isNew = processEventOnce(event.id, 'webhook', () => {
-        if (isPayment) markSeen(obj.id, 'webhook', receivedMs); // real work would go on a queue here
+        // "App knows" = the moment the payment ID is written, same definition as the poller.
+        // The arrival time is kept separately in deliveries.received_ms.
+        if (isPayment) markSeen(obj.id, 'webhook'); // real work would go on a queue here
       });
     } catch (err) {
       // Nothing was committed, so a 500 makes Stripe retry and the retry can succeed.
@@ -77,14 +82,17 @@ export const _internal = { signatureTime };
 
 if (isMain(import.meta.url)) {
   const port = Number(process.env.PORT || 3000);
+  const host = process.env.HOST || '127.0.0.1';
   const db = openDb();
-  fs.mkdirSync(path.join(PROJECT_DIR, 'logs'), { recursive: true });
-  const requestLog = fs.createWriteStream(path.join(PROJECT_DIR, 'logs', 'webhook-requests.jsonl'), { flags: 'a' });
+  // REQUEST_LOG_PATH lets the demo keep its fake requests out of the real log.
+  const logPath = process.env.REQUEST_LOG_PATH || path.join(PROJECT_DIR, 'logs', 'webhook-requests.jsonl');
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const requestLog = fs.createWriteStream(logPath, { flags: 'a' });
   const app = createApp({ db, endpointSecret: process.env.STRIPE_WEBHOOK_SECRET, requestLog });
-  const server = app.listen(port, (err) => {
+  const server = app.listen(port, host, (err) => {
     if (err) throw err;
     const run = db.prepare('INSERT INTO receiver_runs (started_ms) VALUES (?)').run(Date.now());
-    console.log(`${new Date().toISOString()} listening on ${port}, POST /webhooks/stripe`);
+    console.log(`${new Date().toISOString()} listening on ${host}:${port}, POST /webhooks/stripe`);
     const stop = (sig) => {
       db.prepare('UPDATE receiver_runs SET stopped_ms = ? WHERE rowid = ?').run(Date.now(), run.lastInsertRowid);
       console.log(`${new Date().toISOString()} ${sig}: receiver stopped`);

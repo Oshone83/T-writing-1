@@ -72,3 +72,18 @@ test('signatureTime parses t= from the header', () => {
 test('createApp refuses to start without a whsec_ secret', () => {
   assert.throws(() => createApp({ db, endpointSecret: undefined }), /STRIPE_WEBHOOK_SECRET/);
 });
+
+test('work that fails returns 500 and is not marked processed, so a retry can succeed', async () => {
+  const payload = JSON.stringify(event('evt_f', 'pi_f'));
+  db.exec('ALTER TABLE seen RENAME TO seen_gone'); // make the write fail
+  assert.equal((await post(payload, sign(payload))).status, 500);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM processed_events').get().n, 0);
+  db.exec('ALTER TABLE seen_gone RENAME TO seen');
+  assert.equal((await post(payload, sign(payload))).status, 200);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM seen WHERE id = 'pi_f'").get().n, 1);
+});
+
+test('charset in Content-Type (what Stripe sends) still gets the raw body', async () => {
+  const payload = JSON.stringify(event('evt_g', 'pi_g'));
+  assert.equal((await post(payload, sign(payload), 'application/json; charset=utf-8')).status, 200);
+});

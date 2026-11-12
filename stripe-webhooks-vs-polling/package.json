@@ -4,7 +4,9 @@
   "description": "Experiment: Stripe payment polling vs webhooks, an endpoint outage, and an hourly reconcile job (test mode only)",
   "type": "module",
   "private": true,
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test --test-reporter=spec test/*.test.js",
     "receiver": "node receiver.js",
@@ -15,7 +17,12 @@
     "reconcile": "node reconcile.js",
     "lose-one": "node simulate-lost-event.js",
     "analyze": "node analyze.js",
-    "demo": "node scripts/demo.js"
+    "demo": "node scripts/demo.js",
+    "create:smoke": "node create-payments.js --count 1 --phase smoke",
+    "create:lost": "node create-payments.js --count 1 --phase lost-event",
+    "reconcile:loop": "node reconcile.js --every 3600",
+    "snapshot": "node snapshot-pending.js",
+    "sample-request": "node scripts/sample-request.js"
   },
   "dependencies": {
     "better-sqlite3": "^13.1.1",

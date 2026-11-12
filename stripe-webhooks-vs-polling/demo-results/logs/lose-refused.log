@@ -1,0 +1,1 @@
+Error: refusing: evt_fake000076 belongs to a 'outage' payment. Only 'lost-event' payments may be forgotten, so real measurements stay intact.

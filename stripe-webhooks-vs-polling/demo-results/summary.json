@@ -6,27 +6,40 @@
     "express": "5.3.0",
     "better-sqlite3": "13.1.1"
   },
+  "phases": {
+    "lost-event": 1,
+    "outage": 3,
+    "side-by-side": 20
+  },
   "sideBySide": {
     "payments": 20,
     "window": {
-      "start": "2026-11-12T16:38:32.107Z",
-      "end": "2026-11-12T16:39:25.011Z"
+      "start": "2026-11-12T19:48:14.560Z",
+      "end": "2026-11-12T19:49:06.007Z"
     },
     "poll": {
       "n": 20,
-      "median": 5286.5,
-      "p95": 8505,
-      "max": 9568,
-      "min": 135,
-      "mean": 4849.3
+      "median": 6596,
+      "p95": 9357,
+      "max": 9623,
+      "min": 1276,
+      "mean": 5726.55
     },
     "webhook": {
       "n": 20,
-      "median": 52,
-      "p95": 55,
-      "max": 63,
-      "min": 50,
-      "mean": 52.85
+      "median": 53,
+      "p95": 57,
+      "max": 68,
+      "min": 51,
+      "mean": 53.55
+    },
+    "receiverWriteLag": {
+      "n": 20,
+      "median": 0.5,
+      "p95": 1,
+      "max": 2,
+      "min": 0,
+      "mean": 0.55
     },
     "missedByPoll": [],
     "missedByWebhook": [],
@@ -35,353 +48,433 @@
     "perPayment": [
       {
         "id": "pi_fake000002",
-        "created_ms": 1794501512107,
-        "stripe_created_s": 1794501512,
+        "created_ms": 1794512894560,
+        "stripe_created_s": 1794512894,
+        "webhook_arrival_ms": 1794512894626,
         "poll": {
-          "seen_ms": 1794501520612,
-          "delay_ms": 8505
+          "seen_ms": 1794512903047,
+          "delay_ms": 8487
         },
         "webhook": {
-          "seen_ms": 1794501512170,
-          "delay_ms": 63
+          "seen_ms": 1794512894628,
+          "delay_ms": 68
         }
       },
       {
         "id": "pi_fake000005",
-        "created_ms": 1794501513846,
-        "stripe_created_s": 1794501513,
+        "created_ms": 1794512896012,
+        "stripe_created_s": 1794512896,
+        "webhook_arrival_ms": 1794512896065,
         "poll": {
-          "seen_ms": 1794501520612,
-          "delay_ms": 6766
+          "seen_ms": 1794512903047,
+          "delay_ms": 7035
         },
         "webhook": {
-          "seen_ms": 1794501513898,
-          "delay_ms": 52
+          "seen_ms": 1794512896065,
+          "delay_ms": 53
         }
       },
       {
         "id": "pi_fake000008",
-        "created_ms": 1794501517574,
-        "stripe_created_s": 1794501517,
+        "created_ms": 1794512899570,
+        "stripe_created_s": 1794512899,
+        "webhook_arrival_ms": 1794512899621,
         "poll": {
-          "seen_ms": 1794501520612,
-          "delay_ms": 3038
+          "seen_ms": 1794512903047,
+          "delay_ms": 3477
         },
         "webhook": {
-          "seen_ms": 1794501517626,
-          "delay_ms": 52
-        }
-      },
-      {
-        "id": "pi_fake000011",
-        "created_ms": 1794501519000,
-        "stripe_created_s": 1794501518,
-        "poll": {
-          "seen_ms": 1794501520612,
-          "delay_ms": 1612
-        },
-        "webhook": {
-          "seen_ms": 1794501519052,
-          "delay_ms": 52
-        }
-      },
-      {
-        "id": "pi_fake000015",
-        "created_ms": 1794501522326,
-        "stripe_created_s": 1794501522,
-        "poll": {
-          "seen_ms": 1794501530617,
-          "delay_ms": 8291
-        },
-        "webhook": {
-          "seen_ms": 1794501522376,
-          "delay_ms": 50
-        }
-      },
-      {
-        "id": "pi_fake000018",
-        "created_ms": 1794501525287,
-        "stripe_created_s": 1794501525,
-        "poll": {
-          "seen_ms": 1794501530617,
-          "delay_ms": 5330
-        },
-        "webhook": {
-          "seen_ms": 1794501525339,
-          "delay_ms": 52
-        }
-      },
-      {
-        "id": "pi_fake000021",
-        "created_ms": 1794501529129,
-        "stripe_created_s": 1794501529,
-        "poll": {
-          "seen_ms": 1794501530617,
-          "delay_ms": 1488
-        },
-        "webhook": {
-          "seen_ms": 1794501529181,
-          "delay_ms": 52
-        }
-      },
-      {
-        "id": "pi_fake000024",
-        "created_ms": 1794501530482,
-        "stripe_created_s": 1794501530,
-        "poll": {
-          "seen_ms": 1794501530617,
-          "delay_ms": 135
-        },
-        "webhook": {
-          "seen_ms": 1794501530534,
-          "delay_ms": 52
-        }
-      },
-      {
-        "id": "pi_fake000028",
-        "created_ms": 1794501534179,
-        "stripe_created_s": 1794501534,
-        "poll": {
-          "seen_ms": 1794501540621,
-          "delay_ms": 6442
-        },
-        "webhook": {
-          "seen_ms": 1794501534232,
-          "delay_ms": 53
-        }
-      },
-      {
-        "id": "pi_fake000031",
-        "created_ms": 1794501535377,
-        "stripe_created_s": 1794501535,
-        "poll": {
-          "seen_ms": 1794501540620,
-          "delay_ms": 5243
-        },
-        "webhook": {
-          "seen_ms": 1794501535432,
-          "delay_ms": 55
-        }
-      },
-      {
-        "id": "pi_fake000034",
-        "created_ms": 1794501537869,
-        "stripe_created_s": 1794501537,
-        "poll": {
-          "seen_ms": 1794501540620,
-          "delay_ms": 2751
-        },
-        "webhook": {
-          "seen_ms": 1794501537920,
+          "seen_ms": 1794512899621,
           "delay_ms": 51
         }
       },
       {
+        "id": "pi_fake000011",
+        "created_ms": 1794512901397,
+        "stripe_created_s": 1794512901,
+        "webhook_arrival_ms": 1794512901449,
+        "poll": {
+          "seen_ms": 1794512903046,
+          "delay_ms": 1649
+        },
+        "webhook": {
+          "seen_ms": 1794512901450,
+          "delay_ms": 53
+        }
+      },
+      {
+        "id": "pi_fake000015",
+        "created_ms": 1794512905375,
+        "stripe_created_s": 1794512905,
+        "webhook_arrival_ms": 1794512905431,
+        "poll": {
+          "seen_ms": 1794512913046,
+          "delay_ms": 7671
+        },
+        "webhook": {
+          "seen_ms": 1794512905432,
+          "delay_ms": 57
+        }
+      },
+      {
+        "id": "pi_fake000018",
+        "created_ms": 1794512906444,
+        "stripe_created_s": 1794512906,
+        "webhook_arrival_ms": 1794512906497,
+        "poll": {
+          "seen_ms": 1794512913046,
+          "delay_ms": 6602
+        },
+        "webhook": {
+          "seen_ms": 1794512906497,
+          "delay_ms": 53
+        }
+      },
+      {
+        "id": "pi_fake000021",
+        "created_ms": 1794512910023,
+        "stripe_created_s": 1794512910,
+        "webhook_arrival_ms": 1794512910075,
+        "poll": {
+          "seen_ms": 1794512913046,
+          "delay_ms": 3023
+        },
+        "webhook": {
+          "seen_ms": 1794512910076,
+          "delay_ms": 53
+        }
+      },
+      {
+        "id": "pi_fake000025",
+        "created_ms": 1794512913425,
+        "stripe_created_s": 1794512913,
+        "webhook_arrival_ms": 1794512913477,
+        "poll": {
+          "seen_ms": 1794512923048,
+          "delay_ms": 9623
+        },
+        "webhook": {
+          "seen_ms": 1794512913478,
+          "delay_ms": 53
+        }
+      },
+      {
+        "id": "pi_fake000028",
+        "created_ms": 1794512916458,
+        "stripe_created_s": 1794512916,
+        "webhook_arrival_ms": 1794512916511,
+        "poll": {
+          "seen_ms": 1794512923048,
+          "delay_ms": 6590
+        },
+        "webhook": {
+          "seen_ms": 1794512916512,
+          "delay_ms": 54
+        }
+      },
+      {
+        "id": "pi_fake000031",
+        "created_ms": 1794512918576,
+        "stripe_created_s": 1794512918,
+        "webhook_arrival_ms": 1794512918629,
+        "poll": {
+          "seen_ms": 1794512923048,
+          "delay_ms": 4472
+        },
+        "webhook": {
+          "seen_ms": 1794512918630,
+          "delay_ms": 54
+        }
+      },
+      {
+        "id": "pi_fake000034",
+        "created_ms": 1794512921772,
+        "stripe_created_s": 1794512921,
+        "webhook_arrival_ms": 1794512921824,
+        "poll": {
+          "seen_ms": 1794512923048,
+          "delay_ms": 1276
+        },
+        "webhook": {
+          "seen_ms": 1794512921825,
+          "delay_ms": 53
+        }
+      },
+      {
         "id": "pi_fake000038",
-        "created_ms": 1794501541057,
-        "stripe_created_s": 1794501541,
+        "created_ms": 1794512924218,
+        "stripe_created_s": 1794512924,
+        "webhook_arrival_ms": 1794512924270,
         "poll": {
-          "seen_ms": 1794501550625,
-          "delay_ms": 9568
+          "seen_ms": 1794512933051,
+          "delay_ms": 8833
         },
         "webhook": {
-          "seen_ms": 1794501541110,
-          "delay_ms": 53
-        }
-      },
-      {
-        "id": "pi_fake000041",
-        "created_ms": 1794501543042,
-        "stripe_created_s": 1794501543,
-        "poll": {
-          "seen_ms": 1794501550625,
-          "delay_ms": 7583
-        },
-        "webhook": {
-          "seen_ms": 1794501543095,
-          "delay_ms": 53
-        }
-      },
-      {
-        "id": "pi_fake000044",
-        "created_ms": 1794501545932,
-        "stripe_created_s": 1794501545,
-        "poll": {
-          "seen_ms": 1794501550625,
-          "delay_ms": 4693
-        },
-        "webhook": {
-          "seen_ms": 1794501545984,
+          "seen_ms": 1794512924270,
           "delay_ms": 52
         }
       },
       {
-        "id": "pi_fake000047",
-        "created_ms": 1794501549569,
-        "stripe_created_s": 1794501549,
+        "id": "pi_fake000041",
+        "created_ms": 1794512927415,
+        "stripe_created_s": 1794512927,
+        "webhook_arrival_ms": 1794512927467,
         "poll": {
-          "seen_ms": 1794501550625,
-          "delay_ms": 1056
+          "seen_ms": 1794512933051,
+          "delay_ms": 5636
         },
         "webhook": {
-          "seen_ms": 1794501549622,
+          "seen_ms": 1794512927467,
+          "delay_ms": 52
+        }
+      },
+      {
+        "id": "pi_fake000044",
+        "created_ms": 1794512931106,
+        "stripe_created_s": 1794512931,
+        "webhook_arrival_ms": 1794512931158,
+        "poll": {
+          "seen_ms": 1794512933051,
+          "delay_ms": 1945
+        },
+        "webhook": {
+          "seen_ms": 1794512931159,
           "delay_ms": 53
         }
       },
       {
-        "id": "pi_fake000051",
-        "created_ms": 1794501553493,
-        "stripe_created_s": 1794501553,
+        "id": "pi_fake000048",
+        "created_ms": 1794512933694,
+        "stripe_created_s": 1794512933,
+        "webhook_arrival_ms": 1794512933746,
         "poll": {
-          "seen_ms": 1794501560628,
-          "delay_ms": 7135
+          "seen_ms": 1794512943051,
+          "delay_ms": 9357
         },
         "webhook": {
-          "seen_ms": 1794501553545,
+          "seen_ms": 1794512933746,
+          "delay_ms": 52
+        }
+      },
+      {
+        "id": "pi_fake000051",
+        "created_ms": 1794512936435,
+        "stripe_created_s": 1794512936,
+        "webhook_arrival_ms": 1794512936487,
+        "poll": {
+          "seen_ms": 1794512943051,
+          "delay_ms": 6616
+        },
+        "webhook": {
+          "seen_ms": 1794512936487,
           "delay_ms": 52
         }
       },
       {
         "id": "pi_fake000054",
-        "created_ms": 1794501557362,
-        "stripe_created_s": 1794501557,
+        "created_ms": 1794512938370,
+        "stripe_created_s": 1794512938,
+        "webhook_arrival_ms": 1794512938422,
         "poll": {
-          "seen_ms": 1794501560628,
-          "delay_ms": 3266
+          "seen_ms": 1794512943051,
+          "delay_ms": 4681
         },
         "webhook": {
-          "seen_ms": 1794501557414,
+          "seen_ms": 1794512938422,
           "delay_ms": 52
         }
       },
       {
         "id": "pi_fake000057",
-        "created_ms": 1794501559506,
-        "stripe_created_s": 1794501559,
+        "created_ms": 1794512941209,
+        "stripe_created_s": 1794512941,
+        "webhook_arrival_ms": 1794512941260,
         "poll": {
-          "seen_ms": 1794501560628,
-          "delay_ms": 1122
+          "seen_ms": 1794512943051,
+          "delay_ms": 1842
         },
         "webhook": {
-          "seen_ms": 1794501559558,
+          "seen_ms": 1794512941261,
           "delay_ms": 52
         }
       },
       {
         "id": "pi_fake000061",
-        "created_ms": 1794501563291,
-        "stripe_created_s": 1794501563,
+        "created_ms": 1794512944387,
+        "stripe_created_s": 1794512944,
+        "webhook_arrival_ms": 1794512944439,
         "poll": {
-          "seen_ms": 1794501570632,
-          "delay_ms": 7341
+          "seen_ms": 1794512953055,
+          "delay_ms": 8668
         },
         "webhook": {
-          "seen_ms": 1794501563344,
-          "delay_ms": 53
+          "seen_ms": 1794512944439,
+          "delay_ms": 52
         }
       },
       {
         "id": "pi_fake000064",
-        "created_ms": 1794501565011,
-        "stripe_created_s": 1794501565,
+        "created_ms": 1794512946007,
+        "stripe_created_s": 1794512946,
+        "webhook_arrival_ms": 1794512946059,
         "poll": {
-          "seen_ms": 1794501570632,
-          "delay_ms": 5621
+          "seen_ms": 1794512953055,
+          "delay_ms": 7048
         },
         "webhook": {
-          "seen_ms": 1794501565064,
-          "delay_ms": 53
+          "seen_ms": 1794512946059,
+          "delay_ms": 52
         }
       }
     ]
   },
   "apiCalls": {
+    "totals": {
+      "create": 24,
+      "poll": 7,
+      "reconcile": 2,
+      "snapshot": 10
+    },
+    "quiet": {
+      "from": "2026-11-12T18:48:14.560Z",
+      "to": "2026-11-12T19:48:14.560Z",
+      "source": "60 min before the first side-by-side payment",
+      "minutes": 60,
+      "calls": 1,
+      "per_hour": 1,
+      "valid": false,
+      "problems": [
+        "the poller was not running at the window start (first poll call 2026-11-12T19:48:13.040Z)"
+      ]
+    },
+    "duringTest": {
+      "first_hour_calls": 6,
+      "first_hour_complete": false,
+      "window_calls": 5,
+      "window_minutes": 0.85745,
+      "window_per_hour": 349.8746282582075
+    },
     "byHour": [
       {
-        "hour_start": "2026-11-12T16:00:00.000Z",
+        "hour_start_utc": "2026-11-12T19:00:00.000Z",
         "poll_calls": 7,
-        "payments_created": 23,
+        "payments_created": 24,
         "full_hour": false
       }
-    ],
-    "quietHours": [],
-    "duringTest": {
-      "calls": 5,
-      "minutes": 0.8817333333333334,
-      "per_hour": 340.2389233328293,
-      "first_hour_calls": 6,
-      "first_hour_complete": false
-    },
-    "reconcileCalls": 2
+    ]
   },
   "deliveries": {
-    "total": 24,
+    "total": 25,
     "duplicates": 1,
-    "distinct_events": 23,
+    "distinct_events": 24,
+    "samePaymentMultipleEvents": [],
     "lateDeliveries": {
       "n": 0,
       "min_age_s": null,
       "max_age_s": null
     }
   },
+  "dashboard": {
+    "file_rows": 0,
+    "failed_attempts": 0,
+    "events": 0
+  },
+  "pendingSnapshots": {
+    "runs": 10,
+    "max_pending": 3,
+    "first": "2026-11-12T19:49:17.269Z",
+    "last": "2026-11-12T19:49:53.290Z"
+  },
   "outage": {
     "windows": [
       {
-        "down_at": "2026-11-12T16:39:36.024Z",
-        "up_at": "2026-11-12T16:39:50.926Z",
-        "minutes": 0.24836666666666668
+        "down_at": "2026-11-12T19:49:17.028Z",
+        "up_at": "2026-11-12T19:49:32.112Z",
+        "minutes": 0.2514
       }
     ],
     "payments": [
       {
         "payment_id": "pi_fake000068",
         "event_id": "evt_fake000069",
-        "payment_created": "2026-11-12T16:39:36.181Z",
-        "first_webhook_delivery": "2026-11-12T16:39:51.239Z",
+        "payment_created": "2026-11-12T19:49:17.232Z",
+        "dashboard_failed_attempts": 0,
+        "dashboard_failed_attempt_times": "",
+        "stripe_reported_pending_first": "2026-11-12T19:49:17.269Z",
+        "stripe_reported_pending_last": "2026-11-12T19:49:29.266Z",
+        "first_webhook_delivery": "2026-11-12T19:49:32.292Z",
+        "webhook_delivery_delay_s": 15.06,
         "webhook_deliveries": 1,
         "duplicate_deliveries": 0,
-        "signature_t_values": "1794501591",
         "signature_t_minus_event_created_s": "15",
-        "event_created_s": 1794501576,
         "app_knew_via": "webhook",
-        "app_knew_at": "2026-11-12T16:39:51.239Z",
-        "total_delay_s": 15.058
+        "app_knew_at": "2026-11-12T19:49:32.294Z",
+        "total_delay_s": 15.062
       },
       {
-        "payment_id": "pi_fake000071",
-        "event_id": "evt_fake000072",
-        "payment_created": "2026-11-12T16:39:37.596Z",
-        "first_webhook_delivery": "2026-11-12T16:39:52.652Z",
+        "payment_id": "pi_fake000072",
+        "event_id": "evt_fake000073",
+        "payment_created": "2026-11-12T19:49:18.379Z",
+        "dashboard_failed_attempts": 0,
+        "dashboard_failed_attempt_times": "",
+        "stripe_reported_pending_first": "2026-11-12T19:49:21.259Z",
+        "stripe_reported_pending_last": "2026-11-12T19:49:33.269Z",
+        "first_webhook_delivery": "2026-11-12T19:49:33.436Z",
+        "webhook_delivery_delay_s": 15.057,
         "webhook_deliveries": 1,
         "duplicate_deliveries": 0,
-        "signature_t_values": "1794501592",
         "signature_t_minus_event_created_s": "15",
-        "event_created_s": 1794501577,
         "app_knew_via": "webhook",
-        "app_knew_at": "2026-11-12T16:39:52.652Z",
-        "total_delay_s": 15.056
+        "app_knew_at": "2026-11-12T19:49:33.436Z",
+        "total_delay_s": 15.057
       },
       {
-        "payment_id": "pi_fake000074",
-        "event_id": "evt_fake000075",
-        "payment_created": "2026-11-12T16:39:38.742Z",
-        "first_webhook_delivery": "2026-11-12T16:39:53.797Z",
+        "payment_id": "pi_fake000075",
+        "event_id": "evt_fake000076",
+        "payment_created": "2026-11-12T19:49:19.846Z",
+        "dashboard_failed_attempts": 0,
+        "dashboard_failed_attempt_times": "",
+        "stripe_reported_pending_first": "2026-11-12T19:49:21.259Z",
+        "stripe_reported_pending_last": "2026-11-12T19:49:33.269Z",
+        "first_webhook_delivery": "2026-11-12T19:49:34.902Z",
+        "webhook_delivery_delay_s": 15.056,
         "webhook_deliveries": 1,
         "duplicate_deliveries": 0,
-        "signature_t_values": "1794501593",
         "signature_t_minus_event_created_s": "15",
-        "event_created_s": 1794501578,
-        "app_knew_via": "reconcile",
-        "app_knew_at": "2026-11-12T16:40:16.475Z",
-        "total_delay_s": 37.733
+        "app_knew_via": "webhook",
+        "app_knew_at": "2026-11-12T19:49:34.903Z",
+        "total_delay_s": 15.057
       }
     ],
     "allEventuallyKnown": true,
+    "allDeliveredByWebhook": true,
     "arrivedInCreationOrder": true,
     "arrivalInversions": 0
   },
+  "lostEvent": [
+    {
+      "event_id": "evt_fake000088",
+      "payment_id": "pi_fake000087",
+      "phase": "lost-event",
+      "delivered_by_webhook_at": "2026-11-12T19:49:57.640Z",
+      "forgotten_at": "2026-11-12T19:49:58.669Z",
+      "recovered_by_reconcile_at": "2026-11-12T19:49:58.827Z",
+      "recovered": true
+    }
+  ],
+  "reconcile": {
+    "events_recovered": 1,
+    "payments": [
+      {
+        "payment_id": "pi_fake000087",
+        "seen_ms": 1794512998827,
+        "phase": "lost-event",
+        "seen_at": "2026-11-12T19:49:58.827Z"
+      }
+    ]
+  },
   "code": {
-    "poll.js": 49,
-    "receiver.js": 77
+    "poll.js": 40,
+    "receiver.js": 79
   }
 }

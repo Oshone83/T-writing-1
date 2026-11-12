@@ -1,0 +1,2 @@
+event_id,payment_id,phase,delivered_by_webhook_at,forgotten_at,recovered_by_reconcile_at,recovered
+evt_fake000088,pi_fake000087,lost-event,2026-11-12T19:49:57.640Z,2026-11-12T19:49:58.669Z,2026-11-12T19:49:58.827Z,true

@@ -1,8 +1,15 @@
 // analyze.js — turns payments.db into the article's numbers, raw-timestamp CSVs and a chart.
 //
 //   node analyze.js                      writes results/summary.md, summary.json, delays.csv,
-//                                        outage.csv, api-calls-by-hour.csv, delay-chart.svg
+//                                        outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg
+//   node analyze.js --quiet-from 2026-11-20T09:00:00Z --quiet-to 2026-11-20T10:00:00Z
 //   node analyze.js --out some/dir --label "SIMULATED"
+//
+// Definitions (same for both methods):
+//   created_ms  Date.now() right after the create call returned a succeeded PaymentIntent
+//   seen_ms     Date.now() when the poller / receiver wrote the payment ID to SQLite ("app knows")
+//   delay       seen_ms - created_ms. Percentiles are nearest-rank (always a delay that happened).
+// All times are UTC.
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -15,17 +22,41 @@ const iso = (ms) => (ms == null ? '' : new Date(ms).toISOString());
 const sec = (ms) => (ms == null ? null : Math.round(ms) / 1000);
 const fmt = (ms, d = 1) => (ms == null ? 'n/a' : (ms / 1000).toFixed(d));
 
-export function analyze(db, { codeFiles = {} } = {}) {
+export const MANUAL_ATTEMPTS_FILE = path.join('manual', 'dashboard-delivery-attempts.csv');
+
+// Minimal CSV reader for the hand-filled Dashboard file: skips blank lines and lines starting with #.
+export function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() && !l.trim().startsWith('#'));
+  if (!lines.length) return [];
+  const split = (line) => {
+    const out = []; let cur = ''; let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (q) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+      else if (c === '"') q = true; else if (c === ',') { out.push(cur.trim()); cur = ''; } else cur += c;
+    }
+    out.push(cur.trim());
+    return out;
+  };
+  const head = split(lines[0]);
+  return lines.slice(1).map((l) => Object.fromEntries(split(l).map((v, i) => [head[i], v])));
+}
+
+export function analyze(db, { codeFiles = {}, quietFrom, quietTo, manualAttemptsCsv } = {}) {
   // ---------- side-by-side delays: the article's core query ----------
   const rows = db.prepare(`
     SELECT p.id, p.created_ms, p.stripe_created_s, s.method, s.seen_ms, s.seen_ms - p.created_ms AS delay_ms
     FROM payments p LEFT JOIN seen s ON p.id = s.id AND s.method IN ('poll', 'webhook')
     WHERE p.phase = 'side-by-side'
     ORDER BY p.created_ms`).all();
+  const firstArrival = db.prepare(
+    "SELECT MIN(received_ms) t FROM deliveries WHERE payment_id = ? AND event_type = 'payment_intent.succeeded'");
 
   const perPayment = new Map();
   for (const r of rows) {
-    if (!perPayment.has(r.id)) perPayment.set(r.id, { id: r.id, created_ms: r.created_ms, stripe_created_s: r.stripe_created_s });
+    if (!perPayment.has(r.id)) {
+      perPayment.set(r.id, { id: r.id, created_ms: r.created_ms, stripe_created_s: r.stripe_created_s, webhook_arrival_ms: firstArrival.get(r.id).t });
+    }
     if (r.method) perPayment.get(r.id)[r.method] = { seen_ms: r.seen_ms, delay_ms: r.delay_ms };
   }
   const payments = [...perPayment.values()];
@@ -34,54 +65,90 @@ export function analyze(db, { codeFiles = {} } = {}) {
   const webhook = summarize(delays('webhook'));
   const missedBy = (m) => payments.filter((p) => !p[m]).map((p) => p.id);
   const webhookBeforeCreateReturned = payments.filter((p) => p.webhook && p.webhook.delay_ms < 0).map((p) => p.id);
+  // Arrival-to-write time inside the receiver: shows the timestamp change (C6) costs milliseconds.
+  const receiverWriteLag = summarize(payments.filter((p) => p.webhook && p.webhook_arrival_ms != null)
+    .map((p) => p.webhook.seen_ms - p.webhook_arrival_ms));
 
-  const window = payments.length
-    ? { start_ms: payments[0].created_ms, end_ms: payments.at(-1).created_ms }
-    : null;
-
-  // Webhook arrival order vs creation order (side-by-side phase).
+  const window = payments.length ? { start_ms: payments[0].created_ms, end_ms: payments.at(-1).created_ms } : null;
   const arrival = payments.filter((p) => p.webhook).sort((a, b) => a.webhook.seen_ms - b.webhook.seen_ms);
   const createdRank = new Map(payments.map((p, i) => [p.id, i]));
   const sideBySideInversions = countInversions(arrival.map((p) => createdRank.get(p.id)));
 
   // ---------- API calls ----------
-  const calls = db.prepare("SELECT source, at_ms FROM api_calls WHERE source = 'poll' ORDER BY at_ms").all();
-  const allPaymentTimes = db.prepare('SELECT created_ms FROM payments').all().map((r) => r.created_ms);
-  const byHour = new Map();
-  for (const c of calls) {
-    const h = Math.floor(c.at_ms / HOUR) * HOUR;
-    byHour.set(h, (byHour.get(h) ?? 0) + 1);
-  }
-  const hours = [...byHour.keys()].sort((a, b) => a - b);
-  // A "full" hour is one the poller covered from start to end: not the first or last bucket.
-  const hourRows = hours.map((h, i) => {
-    const paymentsInHour = allPaymentTimes.filter((t) => t >= h && t < h + HOUR).length;
-    return { hour_start: iso(h), poll_calls: byHour.get(h), payments_created: paymentsInHour, full_hour: i > 0 && i < hours.length - 1 };
-  });
-  const quietHours = hourRows.filter((r) => r.full_hour && r.payments_created === 0);
-  let duringTest = null;
-  if (window && window.end_ms > window.start_ms) {
-    const n = calls.filter((c) => c.at_ms >= window.start_ms && c.at_ms <= window.end_ms).length;
-    // Two views: the rate over the payment window, and the plain count in the 60 min after the first payment.
-    const firstHour = calls.filter((c) => c.at_ms >= window.start_ms && c.at_ms < window.start_ms + HOUR).length;
-    const lastCall = calls.at(-1)?.at_ms ?? 0;
-    duringTest = {
-      calls: n, minutes: (window.end_ms - window.start_ms) / 60000, per_hour: n / ((window.end_ms - window.start_ms) / HOUR),
-      first_hour_calls: firstHour, first_hour_complete: lastCall >= window.start_ms + HOUR,
+  const totals = Object.fromEntries(
+    db.prepare('SELECT source, COUNT(*) n FROM api_calls GROUP BY source').all().map((r) => [r.source, r.n]));
+  const pollCalls = db.prepare("SELECT at_ms FROM api_calls WHERE source = 'poll' ORDER BY at_ms").all().map((r) => r.at_ms);
+  const allPayments = db.prepare('SELECT created_ms, phase FROM payments').all();
+  const paymentsIn = (from, to) => allPayments.filter((p) => p.created_ms >= from && p.created_ms < to).length;
+  const callsIn = (from, to) => pollCalls.filter((t) => t >= from && t < to).length;
+
+  // Quiet window: explicit, or by default the 60 minutes right before the first side-by-side payment.
+  let quiet = null;
+  const qFrom = quietFrom ? Date.parse(quietFrom) : window ? window.start_ms - HOUR : null;
+  const qTo = quietTo ? Date.parse(quietTo) : window ? window.start_ms : null;
+  if (qFrom != null && qTo != null) {
+    if (!(qTo > qFrom)) throw new Error('--quiet-to must be after --quiet-from');
+    const problems = [];
+    if (!pollCalls.length || pollCalls[0] > qFrom + 60_000) problems.push(`the poller was not running at the window start (first poll call ${iso(pollCalls[0]) || 'never'})`);
+    if (!pollCalls.length || pollCalls.at(-1) < qTo - 60_000) problems.push('the poller stopped before the window end');
+    const pin = paymentsIn(qFrom, qTo);
+    if (pin) problems.push(`${pin} payment(s) were created inside the window`);
+    const calls = callsIn(qFrom, qTo);
+    quiet = {
+      from: iso(qFrom), to: iso(qTo), source: quietFrom ? 'explicit --quiet-from/--quiet-to' : '60 min before the first side-by-side payment',
+      minutes: (qTo - qFrom) / 60000, calls, per_hour: calls / ((qTo - qFrom) / HOUR), valid: problems.length === 0, problems,
     };
   }
-  const reconcileCalls = db.prepare("SELECT COUNT(*) n FROM api_calls WHERE source = 'reconcile'").get().n;
 
-  // ---------- webhook deliveries, duplicates ----------
-  const deliveryTotals = db.prepare(`
-    SELECT COUNT(*) total, SUM(duplicate) duplicates, COUNT(DISTINCT event_id) distinct_events
-    FROM deliveries`).get();
-  // Every row in deliveries passed constructEvent, whose default tolerance is 300 s. A delivery that
-  // arrived > 300 s after the event was created can only have passed if its t= is fresh, i.e. the
-  // retry was re-signed. The t= minus created spread shows it directly too.
+  let duringTest = null;
+  if (window) {
+    const firstHour = callsIn(window.start_ms, window.start_ms + HOUR);
+    const span = window.end_ms - window.start_ms;
+    const n = pollCalls.filter((t) => t >= window.start_ms && t <= window.end_ms).length;
+    duringTest = {
+      first_hour_calls: firstHour, first_hour_complete: (pollCalls.at(-1) ?? 0) >= window.start_ms + HOUR - 60_000,
+      window_calls: n, window_minutes: span / 60000, window_per_hour: span > 0 ? n / (span / HOUR) : null,
+    };
+  }
+
+  // Per UTC clock hour, for the CSV.
+  const byHour = new Map();
+  for (const t of pollCalls) { const h = Math.floor(t / HOUR) * HOUR; byHour.set(h, (byHour.get(h) ?? 0) + 1); }
+  const hourRows = [...byHour.keys()].sort((a, b) => a - b).map((h, i, all) => ({
+    hour_start_utc: iso(h), poll_calls: byHour.get(h), payments_created: paymentsIn(h, h + HOUR),
+    full_hour: i > 0 && i < all.length - 1,
+  }));
+
+  // ---------- webhook deliveries ----------
+  const deliveryTotals = db.prepare(
+    'SELECT COUNT(*) total, COALESCE(SUM(duplicate), 0) duplicates, COUNT(DISTINCT event_id) distinct_events FROM deliveries').get();
+  // Stripe: "In some cases, two separate Event objects are generated and sent." Event-ID dedupe can't
+  // catch those; the per-payment seen table does. Count them so they're visible.
+  const samePaymentMultipleEvents = db.prepare(`
+    SELECT payment_id, COUNT(DISTINCT event_id) events FROM deliveries
+    WHERE event_type = 'payment_intent.succeeded' GROUP BY payment_id HAVING events > 1`).all();
+  // constructEvent rejects t= older than 300 s, so a delivery arriving > 300 s after the event was
+  // created can only have passed with a fresh signature.
   const lateDeliveries = db.prepare(`
     SELECT COUNT(*) n, MIN(signature_t - event_created_s) min_age_s, MAX(signature_t - event_created_s) max_age_s
     FROM deliveries WHERE received_ms / 1000 - event_created_s > 300`).get();
+
+  // ---------- Dashboard attempts (hand-copied) and Stripe's pending snapshots ----------
+  const manualRows = manualAttemptsCsv ? parseCsv(manualAttemptsCsv) : [];
+  const isFailure = (r) => !/^2\d\d$/.test(r.result ?? '');
+  const manualByEvent = new Map();
+  for (const r of manualRows) {
+    if (!manualByEvent.has(r.event_id)) manualByEvent.set(r.event_id, []);
+    manualByEvent.get(r.event_id).push(r);
+  }
+  const snapshots = db.prepare('SELECT snapshot_ms, event_id, payment_id, pending_webhooks FROM pending_snapshots ORDER BY snapshot_ms').all();
+  const snapshotRuns = snapshots.filter((s) => s.event_id == null);
+  const pendingByEvent = new Map();
+  for (const s of snapshots.filter((x) => x.event_id)) {
+    const e = pendingByEvent.get(s.event_id) ?? { first_ms: s.snapshot_ms, last_ms: s.snapshot_ms, count: 0 };
+    e.last_ms = s.snapshot_ms; e.count++;
+    pendingByEvent.set(s.event_id, e);
+  }
 
   // ---------- outage phase ----------
   const runs = db.prepare('SELECT started_ms, stopped_ms FROM receiver_runs ORDER BY started_ms').all();
@@ -89,29 +156,34 @@ export function analyze(db, { codeFiles = {} } = {}) {
   for (let i = 0; i < runs.length - 1; i++) {
     const down = runs[i].stopped_ms;
     const up = runs[i + 1].started_ms;
-    if (down) outages.push({ down_at: iso(down), up_at: iso(up), minutes: (up - down) / 60000 });
-    else outages.push({ down_at: '(unknown: receiver killed without SIGINT/SIGTERM)', up_at: iso(up), minutes: null });
+    outages.push(down
+      ? { down_at: iso(down), up_at: iso(up), minutes: (up - down) / 60000 }
+      : { down_at: '(unknown: receiver killed without Ctrl+C/SIGTERM)', up_at: iso(up), minutes: null });
   }
 
-  const outagePayments = db.prepare("SELECT id, created_ms FROM payments WHERE phase = 'outage' ORDER BY created_ms").all();
   const deliveriesFor = db.prepare(`
     SELECT event_id, received_ms, signature_t, event_created_s, duplicate FROM deliveries
     WHERE payment_id = ? AND event_type = 'payment_intent.succeeded' ORDER BY received_ms`);
-  const seenBy = db.prepare("SELECT method, seen_ms FROM seen WHERE id = ? ORDER BY seen_ms");
-  const outageRows = outagePayments.map((p) => {
+  const seenBy = db.prepare('SELECT method, seen_ms FROM seen WHERE id = ? ORDER BY seen_ms');
+  const outageRows = db.prepare("SELECT id, created_ms FROM payments WHERE phase = 'outage' ORDER BY created_ms").all().map((p) => {
     const d = deliveriesFor.all(p.id);
-    const seen = seenBy.all(p.id);
-    const first = seen[0];
+    const first = seenBy.all(p.id)[0];
+    const eventId = d[0]?.event_id ?? '';
+    const manual = manualByEvent.get(eventId) ?? [];
+    const pend = pendingByEvent.get(eventId);
     return {
       payment_id: p.id,
-      event_id: d[0]?.event_id ?? '',
+      event_id: eventId,
       payment_created: iso(p.created_ms),
+      dashboard_failed_attempts: manual.filter(isFailure).length,
+      dashboard_failed_attempt_times: manual.filter(isFailure).map((r) => `${r.attempted_at_utc} ${r.result}`).join('; '),
+      stripe_reported_pending_first: iso(pend?.first_ms),
+      stripe_reported_pending_last: iso(pend?.last_ms),
       first_webhook_delivery: iso(d[0]?.received_ms),
+      webhook_delivery_delay_s: d[0] ? sec(d[0].received_ms - p.created_ms) : null,
       webhook_deliveries: d.length,
       duplicate_deliveries: d.filter((x) => x.duplicate).length,
-      signature_t_values: d.map((x) => x.signature_t).join(' '),
       signature_t_minus_event_created_s: d.map((x) => x.signature_t - x.event_created_s).join(' '),
-      event_created_s: d[0]?.event_created_s ?? '',
       app_knew_via: first?.method ?? 'NEVER',
       app_knew_at: iso(first?.seen_ms),
       total_delay_s: first ? sec(first.seen_ms - p.created_ms) : null,
@@ -122,28 +194,54 @@ export function analyze(db, { codeFiles = {} } = {}) {
   const outageRank = new Map(outageRows.map((r, i) => [r.payment_id, i]));
   const outageInversions = countInversions(outageArrival.map((r) => outageRank.get(r.payment_id)));
 
-  // ---------- code size ----------
+  // ---------- lost-event demonstration (its own payments; never the measured ones) ----------
+  const reconcileSeen = db.prepare("SELECT seen_ms FROM seen WHERE id = ? AND method = 'reconcile'");
+  const lostRows = db.prepare(`
+    SELECT l.event_id, l.payment_id, l.forgotten_ms, p.phase FROM simulated_losses l
+    LEFT JOIN payments p ON p.id = l.payment_id ORDER BY l.forgotten_ms`).all().map((l) => {
+    const rec = reconcileSeen.get(l.payment_id);
+    return {
+      event_id: l.event_id, payment_id: l.payment_id, phase: l.phase,
+      delivered_by_webhook_at: iso(deliveriesFor.all(l.payment_id)[0]?.received_ms),
+      forgotten_at: iso(l.forgotten_ms), recovered_by_reconcile_at: iso(rec?.seen_ms), recovered: !!rec,
+    };
+  });
+
+  // ---------- reconciliation ----------
+  const reconcileEvents = db.prepare("SELECT COUNT(*) n FROM processed_events WHERE source = 'reconcile'").get().n;
+  const reconcilePayments = db.prepare(`
+    SELECT s.id payment_id, s.seen_ms, p.phase FROM seen s LEFT JOIN payments p ON p.id = s.id
+    WHERE s.method = 'reconcile' ORDER BY s.seen_ms`).all().map((r) => ({ ...r, seen_at: iso(r.seen_ms) }));
+
+  const phases = Object.fromEntries(db.prepare('SELECT phase, COUNT(*) n FROM payments GROUP BY phase').all().map((r) => [r.phase, r.n]));
   const code = Object.fromEntries(Object.entries(codeFiles).map(([name, src]) => [name, countCodeLines(src)]));
 
   return {
+    phases,
     sideBySide: {
       payments: payments.length,
       window: window && { start: iso(window.start_ms), end: iso(window.end_ms) },
-      poll, webhook,
+      poll, webhook, receiverWriteLag,
       missedByPoll: missedBy('poll'), missedByWebhook: missedBy('webhook'),
-      webhookBeforeCreateReturned,
-      webhookArrivalInversions: sideBySideInversions,
+      webhookBeforeCreateReturned, webhookArrivalInversions: sideBySideInversions,
       perPayment: payments,
     },
-    apiCalls: { byHour: hourRows, quietHours, duringTest, reconcileCalls },
-    deliveries: { ...deliveryTotals, duplicates: deliveryTotals.duplicates ?? 0, lateDeliveries },
-    outage: {
-      windows: outages,
-      payments: outageRows,
-      allEventuallyKnown: outageRows.every((r) => r.app_knew_via !== 'NEVER'),
-      arrivedInCreationOrder: outageInversions === 0,
-      arrivalInversions: outageInversions,
+    apiCalls: { totals, quiet, duringTest, byHour: hourRows },
+    deliveries: { ...deliveryTotals, samePaymentMultipleEvents, lateDeliveries },
+    dashboard: {
+      file_rows: manualRows.length,
+      failed_attempts: manualRows.filter(isFailure).length,
+      events: manualByEvent.size,
     },
+    pendingSnapshots: { runs: snapshotRuns.length, max_pending: Math.max(0, ...snapshotRuns.map((s) => s.pending_webhooks)), first: iso(snapshotRuns[0]?.snapshot_ms), last: iso(snapshotRuns.at(-1)?.snapshot_ms) },
+    outage: {
+      windows: outages, payments: outageRows,
+      allEventuallyKnown: outageRows.every((r) => r.app_knew_via !== 'NEVER'),
+      allDeliveredByWebhook: outageRows.every((r) => r.first_webhook_delivery),
+      arrivedInCreationOrder: outageInversions === 0, arrivalInversions: outageInversions,
+    },
+    lostEvent: lostRows,
+    reconcile: { events_recovered: reconcileEvents, payments: reconcilePayments },
     code,
   };
 }
@@ -215,76 +313,125 @@ ${pts.filter((p) => p.method === 'webhook').map(dot).join('\n')}
 
 export function renderSummary(r, { label = '', versions = {}, dbName = 'payments.db' } = {}) {
   const s = r.sideBySide;
-  const q = r.apiCalls.quietHours;
-  const quiet = q.length ? `${q.at(-1).poll_calls} (hour starting ${q.at(-1).hour_start}; ${q.length} quiet full hour(s) recorded)` : 'n/a (no full hour without payments recorded yet)';
-  const dt = r.apiCalls.duringTest;
-  const during = dt
-    ? `${dt.first_hour_calls} in the 60 min from the first payment${dt.first_hour_complete ? '' : ' (poller stopped before the hour ended)'}; ${dt.per_hour.toFixed(1)}/h over the ${dt.minutes.toFixed(1)} min payment window`
-    : 'n/a';
-  const ratio = s.poll.median != null && s.webhook.median ? (s.poll.median / s.webhook.median).toFixed(1) : 'n/a';
-  const banner = label ? `> **${label}**\n\n` : '';
+  const a = r.apiCalls;
+  const q = a.quiet;
+  const quietCell = !q ? 'n/a (no side-by-side payments yet, and no --quiet-from/--quiet-to)'
+    : q.valid ? `${q.per_hour.toFixed(1)} (${q.calls} calls, ${q.from} → ${q.to})`
+    : `NOT VALID: ${q.problems.join('; ')} (${q.calls} calls in ${q.from} → ${q.to})`;
+  const dt = a.duringTest;
+  const duringCell = !dt ? 'n/a'
+    : `${dt.first_hour_calls} in the 60 min from the first payment${dt.first_hour_complete ? '' : ' (INCOMPLETE: poller stopped before the hour ended)'}`;
+  const ratio = s.poll.median != null && s.webhook.median > 0 ? (s.poll.median / s.webhook.median).toFixed(1) : 'n/a';
+  const t = a.totals;
   const o = r.outage;
+  const yesNo = (v, empty) => (empty ? 'n/a' : v ? 'yes' : 'NO');
+
   const outageTable = o.payments.length
-    ? ['| Event | Payment created | Webhook deliveries | First delivered | App knew via | Total delay |', '|---|---|---|---|---|---|',
-       ...o.payments.map((p) => `| ${p.event_id || '(none)'} | ${p.payment_created} | ${p.webhook_deliveries} | ${p.first_webhook_delivery || '-'} | ${p.app_knew_via} | ${p.total_delay_s == null ? '-' : p.total_delay_s.toFixed(1) + ' s'} |`)].join('\n')
+    ? ['| Event | Payment created | Failed attempts (Dashboard) | First webhook delivery | Webhook delay | App knew via | Total delay |',
+       '|---|---|---|---|---|---|---|',
+       ...o.payments.map((p) => `| ${p.event_id || '(none)'} | ${p.payment_created} | ${r.dashboard.file_rows ? p.dashboard_failed_attempts + (p.dashboard_failed_attempt_times ? ` (${p.dashboard_failed_attempt_times})` : '') : 'not recorded'} | ${p.first_webhook_delivery || '-'} | ${p.webhook_delivery_delay_s == null ? '-' : p.webhook_delivery_delay_s.toFixed(1) + ' s'} | ${p.app_knew_via} | ${p.total_delay_s == null ? '-' : p.total_delay_s.toFixed(1) + ' s'} |`)].join('\n')
     : '_No outage-phase payments recorded yet._';
 
-  return `${banner}# Results
+  const lostTable = r.lostEvent.length
+    ? ['| Event | Payment | Delivered by webhook at | Forgotten at | Recovered by reconcile at |', '|---|---|---|---|---|',
+       ...r.lostEvent.map((l) => `| ${l.event_id} | ${l.payment_id} | ${l.delivered_by_webhook_at || '-'} | ${l.forgotten_at} | ${l.recovered_by_reconcile_at || 'NOT YET'} |`)].join('\n')
+    : '_No lost-event demonstration recorded yet._';
 
-Generated ${new Date().toISOString()} from ${dbName}. Percentiles are nearest-rank; delays are
-\`seen_ms - created_ms\` on the same machine clock.
+  return `${label ? `> **${label}**\n\n` : ''}# Results
+
+Generated ${new Date().toISOString()} from ${dbName}. All times UTC. Delay = the moment the poller or
+receiver wrote the payment ID to SQLite − the moment the create call returned (same machine clock).
+Percentiles are nearest-rank. Payments by phase: ${Object.entries(r.phases).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'}.
 
 ## At a glance (side-by-side phase)
 
-| | Polling | Webhook |
+| | Polling (every 60 s in the real run) | Webhook |
 |---|---|---|
 | Payments measured | ${s.poll.n} of ${s.payments} | ${s.webhook.n} of ${s.payments} |
 | Median delay | ${fmt(s.poll.median)} s | ${fmt(s.webhook.median, 2)} s |
 | 95th percentile delay | ${fmt(s.poll.p95)} s | ${fmt(s.webhook.p95, 2)} s |
 | Worst delay | ${fmt(s.poll.max)} s | ${fmt(s.webhook.max, 2)} s |
 | Best delay | ${fmt(s.poll.min)} s | ${fmt(s.webhook.min, 2)} s |
-| Stripe API calls / hour, quiet hour | ${quiet} | 0 |
-| Stripe API calls / hour, during the test | ${during} | 0 |
+| Stripe API calls / hour, quiet hour | ${quietCell} | 0 |
+| Stripe API calls / hour, during the test | ${duringCell} | 0 |
 | Code lines (non-blank, non-comment) | ${r.code['poll.js'] ?? 'n/a'} (poll.js) | ${r.code['receiver.js'] ?? 'n/a'} (receiver.js) |
 
 Median ratio, polling / webhook: **${ratio}×**. Test window: ${s.window ? `${s.window.start} → ${s.window.end}` : 'n/a'}.
 
 - Payments the poller never saw: ${s.missedByPoll.length ? s.missedByPoll.join(', ') : 'none'}
 - Payments the webhook never delivered: ${s.missedByWebhook.length ? s.missedByWebhook.join(', ') : 'none'}
-- Webhooks that arrived before the create call returned (negative delay): ${s.webhookBeforeCreateReturned.length}${s.webhookBeforeCreateReturned.length ? ` (${s.webhookBeforeCreateReturned.join(', ')})` : ''}
+- Webhooks written before the create call returned (negative delay): ${s.webhookBeforeCreateReturned.length}${s.webhookBeforeCreateReturned.length ? ` (${s.webhookBeforeCreateReturned.join(', ')})` : ''}
 - Webhook arrival-order inversions vs creation order: ${s.webhookArrivalInversions}
+- Receiver time from request arrival to SQLite write: median ${fmt(s.receiverWriteLag.median, 3)} s, worst ${fmt(s.receiverWriteLag.max, 3)} s
+
+## Stripe API requests (every HTTP attempt, list pages and SDK retries included)
+
+| Source | Requests |
+|---|---|
+| poll.js, total | ${t.poll ?? 0} |
+| poll.js, during the side-by-side payment window | ${dt ? `${dt.window_calls} in ${dt.window_minutes.toFixed(1)} min` : 'n/a'} |
+| reconcile.js, total | ${t.reconcile ?? 0} |
+| snapshot-pending.js, total | ${t.snapshot ?? 0} |
+| create-payments.js, total | ${t.create ?? 0} |
+
+Per-UTC-hour poll counts are in api-calls-by-hour.csv.
 
 ## Webhook deliveries (all phases)
 
 - Signed deliveries received: ${r.deliveries.total} for ${r.deliveries.distinct_events} distinct events
-- Duplicates turned into no-ops by the event-ID table: ${r.deliveries.duplicates}
+- Same event ID delivered again (turned into a no-op by the event-ID table): ${r.deliveries.duplicates}
+- Same payment delivered under two different event IDs (absorbed by the per-payment seen table): ${r.deliveries.samePaymentMultipleEvents.length}${r.deliveries.samePaymentMultipleEvents.length ? ` (${r.deliveries.samePaymentMultipleEvents.map((x) => x.payment_id).join(', ')})` : ''}
 - Deliveries that arrived more than 300 s after the event was created: ${r.deliveries.lateDeliveries.n}${r.deliveries.lateDeliveries.n ? `. All passed constructEvent's 300 s tolerance, so each carried a fresh signature; their \`t=\` was ${r.deliveries.lateDeliveries.min_age_s}–${r.deliveries.lateDeliveries.max_age_s} s after the event's \`created\`` : ''}
-- Reconcile API calls recorded: ${r.apiCalls.reconcileCalls}
+- Failed delivery attempts copied from the Dashboard (${MANUAL_ATTEMPTS_FILE}): ${r.dashboard.file_rows ? `${r.dashboard.failed_attempts} failed of ${r.dashboard.file_rows} recorded, for ${r.dashboard.events} event(s)` : 'none recorded (the receiver cannot see attempts that never reached it)'}
+- Stripe's own pending view (snapshot-pending.js): ${r.pendingSnapshots.runs ? `${r.pendingSnapshots.runs} snapshots ${r.pendingSnapshots.first} → ${r.pendingSnapshots.last}, at most ${r.pendingSnapshots.max_pending} event(s) undelivered at once` : 'no snapshots taken'}
 
 ## Outage
 
-Receiver down windows (from receiver_runs):
+Receiver down windows (from receiver_runs; ignore any that weren't the planned outage):
 ${o.windows.length ? o.windows.map((w) => `- down ${w.down_at} → up ${w.up_at}${w.minutes == null ? '' : ` (${w.minutes.toFixed(1)} min)`}`).join('\n') : '- none recorded'}
 
 ${outageTable}
 
-- Every outage payment eventually reached the app: **${o.payments.length ? (o.allEventuallyKnown ? 'yes' : 'NO') : 'n/a'}**
-- Retried events arrived in creation order: ${o.payments.length ? (o.arrivedInCreationOrder ? 'yes' : `no (${o.arrivalInversions} inversions)`) : 'n/a'}
-- Failed attempt times and status codes are only visible in the Dashboard (endpoint → Event deliveries).
+- Every outage payment was eventually delivered by a webhook retry: **${yesNo(o.allDeliveredByWebhook, !o.payments.length)}**
+- Every outage payment eventually reached the app (any path): **${yesNo(o.allEventuallyKnown, !o.payments.length)}**
+- Retried events arrived in creation order: ${!o.payments.length ? 'n/a' : o.arrivedInCreationOrder ? 'yes' : `no (${o.arrivalInversions} inversions)`}
+
+## Reconciliation
+
+- Events recovered by reconcile.js (all runs): ${r.reconcile.events_recovered}
+- Payments whose first record came from reconcile: ${r.reconcile.payments.length ? r.reconcile.payments.map((p) => `${p.payment_id} (${p.phase ?? 'not an experiment payment'}, ${p.seen_at})`).join(', ') : 'none'}
+
+### Lost-event demonstration (dedicated payment, separate from the measurements above)
+
+${lostTable}
 
 ## Versions
 
 ${Object.entries(versions).map(([k, v]) => `- ${k} ${v}`).join('\n')}
 
-Files: delays.csv (raw per-payment timestamps), outage.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json.
+Files: delays.csv (raw per-payment timestamps), outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json.
 `;
 }
 
 if (isMain(import.meta.url)) {
-  const { values } = parseArgs({ options: { out: { type: 'string', default: path.join(PROJECT_DIR, 'results') }, label: { type: 'string', default: '' } } });
+  const { values } = parseArgs({
+    options: {
+      out: { type: 'string', default: path.join(PROJECT_DIR, 'results') },
+      label: { type: 'string', default: '' },
+      'quiet-from': { type: 'string' },
+      'quiet-to': { type: 'string' },
+      'manual-attempts': { type: 'string', default: path.join(PROJECT_DIR, MANUAL_ATTEMPTS_FILE) },
+    },
+  });
+  if (!!values['quiet-from'] !== !!values['quiet-to']) throw new Error('give both --quiet-from and --quiet-to, or neither');
   const db = openDb();
   const read = (f) => fs.readFileSync(path.join(PROJECT_DIR, f), 'utf8');
-  const result = analyze(db, { codeFiles: { 'poll.js': read('poll.js'), 'receiver.js': read('receiver.js') } });
+  const manualPath = values['manual-attempts'];
+  const result = analyze(db, {
+    codeFiles: { 'poll.js': read('poll.js'), 'receiver.js': read('receiver.js') },
+    quietFrom: values['quiet-from'], quietTo: values['quiet-to'],
+    manualAttemptsCsv: fs.existsSync(manualPath) ? fs.readFileSync(manualPath, 'utf8') : '',
+  });
 
   // Read installed versions straight from node_modules (stripe's "exports" hides package.json).
   const versions = { node: process.version };
@@ -299,9 +446,10 @@ if (isMain(import.meta.url)) {
   out('delays.csv', csv(result.sideBySide.perPayment.map((p) => ({
     payment_id: p.id, created_iso: iso(p.created_ms), created_ms: p.created_ms, stripe_created_s: p.stripe_created_s,
     poll_seen_ms: p.poll?.seen_ms, poll_delay_s: sec(p.poll?.delay_ms),
-    webhook_seen_ms: p.webhook?.seen_ms, webhook_delay_s: sec(p.webhook?.delay_ms),
+    webhook_arrival_ms: p.webhook_arrival_ms, webhook_seen_ms: p.webhook?.seen_ms, webhook_delay_s: sec(p.webhook?.delay_ms),
   }))));
   out('outage.csv', csv(result.outage.payments));
+  out('lost-event.csv', csv(result.lostEvent));
   out('api-calls-by-hour.csv', csv(result.apiCalls.byHour));
   if (result.sideBySide.perPayment.length) out('delay-chart.svg', renderChart(result.sideBySide.perPayment, { label: values.label }));
 

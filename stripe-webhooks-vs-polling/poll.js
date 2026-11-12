@@ -3,7 +3,7 @@
 //   node poll.js              one run, for cron:  * * * * * cd /path/to/app && node poll.js >> logs/poll.log 2>&1
 //   node poll.js --every 60   same thing in a loop, for machines without cron
 import { parseArgs } from 'node:util';
-import { setTimeout as sleep } from 'node:timers/promises';
+import { runEvery } from './lib/loop.js';
 import { isMain } from './lib/env.js';
 import { openDb, makeHelpers } from './lib/db.js';
 import { createStripe } from './lib/stripe-client.js';
@@ -51,16 +51,7 @@ if (isMain(import.meta.url)) {
     }
   };
 
-  if (!values.every) {
-    await runOnce();
-  } else {
-    const periodMs = Number(values.every) * 1000;
-    for (;;) { // Ctrl+C to stop
-      const started = Date.now();
-      await runOnce();
-      // Fixed-rate schedule like cron, not "60 s after the last run finished".
-      const wait = periodMs - ((Date.now() - started) % periodMs);
-      await sleep(wait);
-    }
-  }
+  // The experiment's interval is 60 s: `node poll.js --every 60` or the cron line in crontab.example.
+  if (values.every) await runEvery(values.every, runOnce);
+  else await runOnce();
 }

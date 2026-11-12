@@ -3,9 +3,11 @@
 //
 //   node reconcile.js                    look back 3 days (default)
 //   node reconcile.js --since-hours 1
+//   node reconcile.js --every 3600       hourly loop, for machines without cron (e.g. Codespaces)
 //   cron: 0 * * * * cd /path/to/app && node reconcile.js >> logs/reconcile.log 2>&1
 import { parseArgs } from 'node:util';
 import { isMain } from './lib/env.js';
+import { runEvery } from './lib/loop.js';
 import { openDb, makeHelpers } from './lib/db.js';
 import { createStripe } from './lib/stripe-client.js';
 
@@ -36,15 +38,19 @@ export async function reconcile({ db, stripe, sinceHours = 72, now = Date.now(),
 }
 
 if (isMain(import.meta.url)) {
-  const { values } = parseArgs({ options: { 'since-hours': { type: 'string', default: '72' } } });
+  const { values } = parseArgs({ options: { 'since-hours': { type: 'string', default: '72' }, every: { type: 'string' } } });
   const db = openDb();
   const { logApiCall } = makeHelpers(db);
   const stripe = createStripe({ onRequest: () => logApiCall('reconcile') });
-  console.log(`${new Date().toISOString()} reconcile start`);
-  try {
-    await reconcile({ db, stripe, sinceHours: Number(values['since-hours']) });
-  } catch (err) {
-    console.error(`reconcile failed: ${err.message}`);
-    process.exitCode = 1;
-  }
+  const runOnce = async () => {
+    console.log(`${new Date().toISOString()} reconcile start`);
+    try {
+      await reconcile({ db, stripe, sinceHours: Number(values['since-hours']) });
+    } catch (err) {
+      console.error(`${new Date().toISOString()} reconcile failed: ${err.message}`);
+      process.exitCode = 1;
+    }
+  };
+  if (values.every) await runEvery(values.every, runOnce);
+  else await runOnce();
 }

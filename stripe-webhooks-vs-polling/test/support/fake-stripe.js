@@ -38,6 +38,7 @@ export function createFakeStripe({ webhookUrl, webhookSecret, retryDelaysMs = [1
     }
     attempts.push({ event_id: event.id, at_ms: Date.now(), attempt, result });
     const ok = /^2\d\d$/.test(result);
+    if (ok) event.pending_webhooks = 0;
     if (!ok && attempt < retryDelaysMs.length) later(retryDelaysMs[attempt], () => deliver(event, attempt + 1));
     return ok;
   }
@@ -74,7 +75,9 @@ export function createFakeStripe({ webhookUrl, webhookSecret, retryDelaysMs = [1
     }
     if (req.method === 'GET' && url.pathname === '/v1/events') {
       const type = url.searchParams.get('type');
-      return send(200, list(events, '/v1/events', url.searchParams, (e) => !type || e.type === type));
+      const ds = url.searchParams.get('delivery_success'); // 'false' = still pending / failed all attempts
+      return send(200, list(events, '/v1/events', url.searchParams,
+        (e) => (!type || e.type === type) && (ds == null || (ds === 'false') === (e.pending_webhooks > 0))));
     }
     send(404, { error: { message: `fake stripe: no route ${req.method} ${url.pathname}` } });
   });

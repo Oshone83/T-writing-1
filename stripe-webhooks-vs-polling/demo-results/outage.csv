@@ -1,4 +1,4 @@
-payment_id,event_id,payment_created,first_webhook_delivery,webhook_deliveries,duplicate_deliveries,signature_t_values,signature_t_minus_event_created_s,event_created_s,app_knew_via,app_knew_at,total_delay_s
-pi_fake000068,evt_fake000069,2026-11-12T16:39:36.181Z,2026-11-12T16:39:51.239Z,1,0,1794501591,15,1794501576,webhook,2026-11-12T16:39:51.239Z,15.058
-pi_fake000071,evt_fake000072,2026-11-12T16:39:37.596Z,2026-11-12T16:39:52.652Z,1,0,1794501592,15,1794501577,webhook,2026-11-12T16:39:52.652Z,15.056
-pi_fake000074,evt_fake000075,2026-11-12T16:39:38.742Z,2026-11-12T16:39:53.797Z,1,0,1794501593,15,1794501578,reconcile,2026-11-12T16:40:16.475Z,37.733
+payment_id,event_id,payment_created,dashboard_failed_attempts,dashboard_failed_attempt_times,stripe_reported_pending_first,stripe_reported_pending_last,first_webhook_delivery,webhook_delivery_delay_s,webhook_deliveries,duplicate_deliveries,signature_t_minus_event_created_s,app_knew_via,app_knew_at,total_delay_s
+pi_fake000068,evt_fake000069,2026-11-12T19:49:17.232Z,0,,2026-11-12T19:49:17.269Z,2026-11-12T19:49:29.266Z,2026-11-12T19:49:32.292Z,15.06,1,0,15,webhook,2026-11-12T19:49:32.294Z,15.062
+pi_fake000072,evt_fake000073,2026-11-12T19:49:18.379Z,0,,2026-11-12T19:49:21.259Z,2026-11-12T19:49:33.269Z,2026-11-12T19:49:33.436Z,15.057,1,0,15,webhook,2026-11-12T19:49:33.436Z,15.057
+pi_fake000075,evt_fake000076,2026-11-12T19:49:19.846Z,0,,2026-11-12T19:49:21.259Z,2026-11-12T19:49:33.269Z,2026-11-12T19:49:34.902Z,15.056,1,0,15,webhook,2026-11-12T19:49:34.903Z,15.057

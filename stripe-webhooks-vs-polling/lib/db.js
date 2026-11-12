@@ -35,6 +35,10 @@ export function openDb(file = process.env.DB_PATH || DEFAULT_DB_PATH) {
     );
     -- When receiver.js was up. Gaps between rows are the outage windows.
     CREATE TABLE IF NOT EXISTS receiver_runs (started_ms INTEGER, stopped_ms INTEGER);
+    -- Events deliberately "forgotten" by simulate-lost-event.js (lost-event phase only).
+    CREATE TABLE IF NOT EXISTS simulated_losses (event_id TEXT, payment_id TEXT, forgotten_ms INTEGER);
+    -- snapshot-pending.js: Stripe's own view of undelivered events (events.list delivery_success=false).
+    CREATE TABLE IF NOT EXISTS pending_snapshots (snapshot_ms INTEGER, event_id TEXT, payment_id TEXT, pending_webhooks INTEGER);
     CREATE TABLE IF NOT EXISTS api_calls (source TEXT, at_ms INTEGER);
     CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT);
   `);

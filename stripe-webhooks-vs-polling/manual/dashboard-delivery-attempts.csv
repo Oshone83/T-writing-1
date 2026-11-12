@@ -1,0 +1,6 @@
+# Failed (and successful) webhook delivery attempts, copied by hand from the Stripe Dashboard:
+# Workbench → Webhooks → your destination → Event deliveries → click each outage event.
+# One row per attempt. Times in UTC, ISO format (2026-11-20T10:15:03Z). Lines starting with # are ignored.
+# result: the HTTP status Stripe shows (e.g. 502) or the error text (e.g. "connection refused" / "timed out").
+# analyze.js counts every result that is not a 2xx as a failed attempt.
+event_id,attempted_at_utc,result,next_retry_at_utc,notes
