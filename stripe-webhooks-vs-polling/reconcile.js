@@ -9,7 +9,7 @@ import { parseArgs } from 'node:util';
 import { isMain } from './lib/env.js';
 import { runEvery } from './lib/loop.js';
 import { openDb, makeHelpers } from './lib/db.js';
-import { createStripe } from './lib/stripe-client.js';
+import { createStripe, assertTestKey } from './lib/stripe-client.js';
 
 export async function reconcile({ db, stripe, sinceHours = 72, now = Date.now(), log = console.log }) {
   const { markSeen, processEventOnce } = makeHelpers(db);
@@ -39,6 +39,7 @@ export async function reconcile({ db, stripe, sinceHours = 72, now = Date.now(),
 
 if (isMain(import.meta.url)) {
   const { values } = parseArgs({ options: { 'since-hours': { type: 'string', default: '72' }, every: { type: 'string' } } });
+  assertTestKey(process.env.STRIPE_SECRET_KEY); // refuse bad keys before creating payments.db
   const db = openDb();
   const { logApiCall } = makeHelpers(db);
   const stripe = createStripe({ onRequest: () => logApiCall('reconcile') });

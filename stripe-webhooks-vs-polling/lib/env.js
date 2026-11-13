@@ -4,6 +4,9 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 export const PROJECT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Where payments.db, logs/, run/ and results/ live. Defaults to the project folder; the self-tests
+// point it elsewhere so they never touch the real experiment's data.
+export const DATA_DIR = path.resolve(process.env.DATA_DIR || PROJECT_DIR);
 
 const envFile = path.join(PROJECT_DIR, '.env');
 if (fs.existsSync(envFile)) {

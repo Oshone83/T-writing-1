@@ -9,6 +9,9 @@ export function assertTestKey(key) {
   if (!/^(sk|rk)_test_/.test(key)) {
     throw new Error('Refusing to run: STRIPE_SECRET_KEY must be a TEST-mode key (sk_test_… or rk_test_…).');
   }
+  if (/replace_me/.test(key)) {
+    throw new Error('STRIPE_SECRET_KEY is still the placeholder from .env.example. Set your real test-mode key.');
+  }
 }
 
 /**
@@ -24,6 +27,10 @@ export function createStripe({ key = process.env.STRIPE_SECRET_KEY, onRequest } 
     const u = new URL(process.env.STRIPE_API_BASE);
     Object.assign(opts, { host: u.hostname, port: Number(u.port), protocol: u.protocol.replace(':', '') });
   }
+  // Behind an HTTPS proxy (e.g. a sandboxed cloud container), Node's default https module ignores
+  // HTTPS_PROXY. STRIPE_HTTP_CLIENT=fetch switches the SDK to fetch, which honours it when Node runs
+  // with NODE_USE_ENV_PROXY=1. Not needed on a normal computer or in GitHub Codespaces.
+  if (process.env.STRIPE_HTTP_CLIENT === 'fetch') opts.httpClient = Stripe.createFetchHttpClient();
   const stripe = new Stripe(key, opts);
   if (onRequest) stripe.on('request', () => onRequest());
   return stripe;
@@ -32,5 +39,8 @@ export function createStripe({ key = process.env.STRIPE_SECRET_KEY, onRequest } 
 export function assertWebhookSecret(secret) {
   if (!secret || !secret.startsWith('whsec_')) {
     throw new Error('STRIPE_WEBHOOK_SECRET is not set (expected whsec_…). Copy it from the endpoint in the Dashboard.');
+  }
+  if (/replace_me/.test(secret)) {
+    throw new Error('STRIPE_WEBHOOK_SECRET is still the placeholder from .env.example. Run ./exp set-webhook-secret.');
   }
 }

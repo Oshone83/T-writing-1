@@ -1,31 +1,31 @@
 <claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
-2026-11-12T19:48:13.062Z listening on 127.0.0.1:3999, POST /webhooks/stripe
-2026-11-12T19:48:14.626Z new       evt_fake000003 payment_intent.succeeded pi_fake000002
-2026-11-12T19:48:16.065Z new       evt_fake000006 payment_intent.succeeded pi_fake000005
-2026-11-12T19:48:19.621Z new       evt_fake000009 payment_intent.succeeded pi_fake000008
-2026-11-12T19:48:21.449Z new       evt_fake000012 payment_intent.succeeded pi_fake000011
-2026-11-12T19:48:25.431Z new       evt_fake000016 payment_intent.succeeded pi_fake000015
-2026-11-12T19:48:26.497Z new       evt_fake000019 payment_intent.succeeded pi_fake000018
-2026-11-12T19:48:30.075Z new       evt_fake000022 payment_intent.succeeded pi_fake000021
-2026-11-12T19:48:33.477Z new       evt_fake000026 payment_intent.succeeded pi_fake000025
-2026-11-12T19:48:36.511Z new       evt_fake000029 payment_intent.succeeded pi_fake000028
-2026-11-12T19:48:38.629Z new       evt_fake000032 payment_intent.succeeded pi_fake000031
-2026-11-12T19:48:41.824Z new       evt_fake000035 payment_intent.succeeded pi_fake000034
-2026-11-12T19:48:44.270Z new       evt_fake000039 payment_intent.succeeded pi_fake000038
-2026-11-12T19:48:47.467Z new       evt_fake000042 payment_intent.succeeded pi_fake000041
-2026-11-12T19:48:51.158Z new       evt_fake000045 payment_intent.succeeded pi_fake000044
-2026-11-12T19:48:53.746Z new       evt_fake000049 payment_intent.succeeded pi_fake000048
-2026-11-12T19:48:56.487Z new       evt_fake000052 payment_intent.succeeded pi_fake000051
-2026-11-12T19:48:58.422Z new       evt_fake000055 payment_intent.succeeded pi_fake000054
-2026-11-12T19:49:01.260Z new       evt_fake000058 payment_intent.succeeded pi_fake000057
-2026-11-12T19:49:04.439Z new       evt_fake000062 payment_intent.succeeded pi_fake000061
-2026-11-12T19:49:06.059Z new       evt_fake000065 payment_intent.succeeded pi_fake000064
-2026-11-12T19:49:17.028Z SIGTERM: receiver stopped
+2026-11-13T05:12:48.566Z listening on 127.0.0.1:3999, POST /webhooks/stripe
+2026-11-13T05:12:50.135Z new       evt_fake000003 payment_intent.succeeded pi_fake000002
+2026-11-13T05:12:53.416Z new       evt_fake000006 payment_intent.succeeded pi_fake000005
+2026-11-13T05:12:54.851Z new       evt_fake000009 payment_intent.succeeded pi_fake000008
+2026-11-13T05:12:56.701Z new       evt_fake000012 payment_intent.succeeded pi_fake000011
+2026-11-13T05:12:59.727Z new       evt_fake000016 payment_intent.succeeded pi_fake000015
+2026-11-13T05:13:03.564Z new       evt_fake000019 payment_intent.succeeded pi_fake000018
+2026-11-13T05:13:05.845Z new       evt_fake000022 payment_intent.succeeded pi_fake000021
+2026-11-13T05:13:08.642Z new       evt_fake000026 payment_intent.succeeded pi_fake000025
+2026-11-13T05:13:11.870Z new       evt_fake000029 payment_intent.succeeded pi_fake000028
+2026-11-13T05:13:12.885Z new       evt_fake000032 payment_intent.succeeded pi_fake000031
+2026-11-13T05:13:15.995Z new       evt_fake000035 payment_intent.succeeded pi_fake000034
+2026-11-13T05:13:19.214Z new       evt_fake000039 payment_intent.succeeded pi_fake000038
+2026-11-13T05:13:21.862Z new       evt_fake000042 payment_intent.succeeded pi_fake000041
+2026-11-13T05:13:25.149Z new       evt_fake000045 payment_intent.succeeded pi_fake000044
+2026-11-13T05:13:29.016Z new       evt_fake000049 payment_intent.succeeded pi_fake000048
+2026-11-13T05:13:31.424Z new       evt_fake000052 payment_intent.succeeded pi_fake000051
+2026-11-13T05:13:33.659Z new       evt_fake000055 payment_intent.succeeded pi_fake000054
+2026-11-13T05:13:36.680Z new       evt_fake000058 payment_intent.succeeded pi_fake000057
+2026-11-13T05:13:38.613Z new       evt_fake000062 payment_intent.succeeded pi_fake000061
+2026-11-13T05:13:41.071Z new       evt_fake000065 payment_intent.succeeded pi_fake000064
+2026-11-13T05:13:52.031Z SIGTERM: receiver stopped
 <claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
-2026-11-12T19:49:32.112Z listening on 127.0.0.1:3999, POST /webhooks/stripe
-2026-11-12T19:49:32.292Z new       evt_fake000069 payment_intent.succeeded pi_fake000068
-2026-11-12T19:49:33.436Z new       evt_fake000073 payment_intent.succeeded pi_fake000072
-2026-11-12T19:49:34.902Z new       evt_fake000076 payment_intent.succeeded pi_fake000075
-2026-11-12T19:49:56.867Z duplicate evt_fake000003 payment_intent.succeeded pi_fake000002
-2026-11-12T19:49:57.640Z new       evt_fake000088 payment_intent.succeeded pi_fake000087
-2026-11-12T19:49:59.012Z SIGTERM: receiver stopped
+2026-11-13T05:14:06.893Z listening on 127.0.0.1:3999, POST /webhooks/stripe
+2026-11-13T05:14:07.249Z new       evt_fake000069 payment_intent.succeeded pi_fake000068
+2026-11-13T05:14:08.721Z new       evt_fake000073 payment_intent.succeeded pi_fake000072
+2026-11-13T05:14:09.759Z new       evt_fake000076 payment_intent.succeeded pi_fake000075
+2026-11-13T05:14:31.725Z duplicate evt_fake000003 payment_intent.succeeded pi_fake000002
+2026-11-13T05:14:32.477Z new       evt_fake000088 payment_intent.succeeded pi_fake000087
+2026-11-13T05:14:33.779Z SIGTERM: receiver stopped

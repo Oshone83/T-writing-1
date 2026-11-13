@@ -8,7 +8,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import fs from 'node:fs';
 import path from 'node:path';
-import { isMain, PROJECT_DIR } from './lib/env.js';
+import { isMain, DATA_DIR } from './lib/env.js';
 import { openDb, makeHelpers } from './lib/db.js';
 import { assertWebhookSecret } from './lib/stripe-client.js';
 
@@ -85,7 +85,7 @@ if (isMain(import.meta.url)) {
   const host = process.env.HOST || '127.0.0.1';
   const db = openDb();
   // REQUEST_LOG_PATH lets the demo keep its fake requests out of the real log.
-  const logPath = process.env.REQUEST_LOG_PATH || path.join(PROJECT_DIR, 'logs', 'webhook-requests.jsonl');
+  const logPath = process.env.REQUEST_LOG_PATH || path.join(DATA_DIR, 'logs', 'webhook-requests.jsonl');
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   const requestLog = fs.createWriteStream(logPath, { flags: 'a' });
   const app = createApp({ db, endpointSecret: process.env.STRIPE_WEBHOOK_SECRET, requestLog });

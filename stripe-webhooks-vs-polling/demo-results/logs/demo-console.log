@@ -3,107 +3,107 @@
 > node scripts/demo.js
 
 
-=== 2026-11-12T19:48:12.876Z start receiver + poller (every 10 s)
-[poll] 2026-11-12T19:48:13.049Z poll: 0 new, cursor 1794509293 -> 1794509293
-[receiver] 2026-11-12T19:48:13.062Z listening on 127.0.0.1:3999, POST /webhooks/stripe
+=== 2026-11-13T05:12:48.372Z start receiver + poller (every 10 s)
+[poll] 2026-11-13T05:12:48.542Z poll: 0 new, cursor 1794543168 -> 1794543168
+[receiver] 2026-11-13T05:12:48.566Z listening on 127.0.0.1:3999, POST /webhooks/stripe
 
-=== 2026-11-12T19:48:14.383Z side-by-side: 20 payments, 1–4 s apart
-[create] #1 pi_fake000002 succeeded at 2026-11-12T19:48:14.560Z
-[receiver] 2026-11-12T19:48:14.626Z new       evt_fake000003 payment_intent.succeeded pi_fake000002
-[create] #2 pi_fake000005 succeeded at 2026-11-12T19:48:16.012Z
-[receiver] 2026-11-12T19:48:16.065Z new       evt_fake000006 payment_intent.succeeded pi_fake000005
-[create] #3 pi_fake000008 succeeded at 2026-11-12T19:48:19.570Z
-[receiver] 2026-11-12T19:48:19.621Z new       evt_fake000009 payment_intent.succeeded pi_fake000008
-[create] #4 pi_fake000011 succeeded at 2026-11-12T19:48:21.397Z
-[receiver] 2026-11-12T19:48:21.449Z new       evt_fake000012 payment_intent.succeeded pi_fake000011
-[poll] 2026-11-12T19:48:23.047Z poll: 4 new, cursor 1794509293 -> 1794512901
-[create] #5 pi_fake000015 succeeded at 2026-11-12T19:48:25.375Z
-[receiver] 2026-11-12T19:48:25.431Z new       evt_fake000016 payment_intent.succeeded pi_fake000015
-[create] #6 pi_fake000018 succeeded at 2026-11-12T19:48:26.444Z
-[receiver] 2026-11-12T19:48:26.497Z new       evt_fake000019 payment_intent.succeeded pi_fake000018
-[create] #7 pi_fake000021 succeeded at 2026-11-12T19:48:30.023Z
-[receiver] 2026-11-12T19:48:30.075Z new       evt_fake000022 payment_intent.succeeded pi_fake000021
-[poll] 2026-11-12T19:48:33.046Z poll: 3 new, cursor 1794512901 -> 1794512910
-[create] #8 pi_fake000025 succeeded at 2026-11-12T19:48:33.425Z
-[receiver] 2026-11-12T19:48:33.477Z new       evt_fake000026 payment_intent.succeeded pi_fake000025
-[create] #9 pi_fake000028 succeeded at 2026-11-12T19:48:36.458Z
-[receiver] 2026-11-12T19:48:36.511Z new       evt_fake000029 payment_intent.succeeded pi_fake000028
-[create] #10 pi_fake000031 succeeded at 2026-11-12T19:48:38.576Z
-[receiver] 2026-11-12T19:48:38.629Z new       evt_fake000032 payment_intent.succeeded pi_fake000031
-[create] #11 pi_fake000034 succeeded at 2026-11-12T19:48:41.772Z
-[receiver] 2026-11-12T19:48:41.824Z new       evt_fake000035 payment_intent.succeeded pi_fake000034
-[poll] 2026-11-12T19:48:43.049Z poll: 4 new, cursor 1794512910 -> 1794512921
-[create] #12 pi_fake000038 succeeded at 2026-11-12T19:48:44.218Z
-[receiver] 2026-11-12T19:48:44.270Z new       evt_fake000039 payment_intent.succeeded pi_fake000038
-[create] #13 pi_fake000041 succeeded at 2026-11-12T19:48:47.415Z
-[receiver] 2026-11-12T19:48:47.467Z new       evt_fake000042 payment_intent.succeeded pi_fake000041
-[create] #14 pi_fake000044 succeeded at 2026-11-12T19:48:51.106Z
-[receiver] 2026-11-12T19:48:51.158Z new       evt_fake000045 payment_intent.succeeded pi_fake000044
-[poll] 2026-11-12T19:48:53.051Z poll: 3 new, cursor 1794512921 -> 1794512931
-[create] #15 pi_fake000048 succeeded at 2026-11-12T19:48:53.694Z
-[receiver] 2026-11-12T19:48:53.746Z new       evt_fake000049 payment_intent.succeeded pi_fake000048
-[create] #16 pi_fake000051 succeeded at 2026-11-12T19:48:56.435Z
-[receiver] 2026-11-12T19:48:56.487Z new       evt_fake000052 payment_intent.succeeded pi_fake000051
-[create] #17 pi_fake000054 succeeded at 2026-11-12T19:48:58.370Z
-[receiver] 2026-11-12T19:48:58.422Z new       evt_fake000055 payment_intent.succeeded pi_fake000054
-[create] #18 pi_fake000057 succeeded at 2026-11-12T19:49:01.209Z
-[receiver] 2026-11-12T19:49:01.260Z new       evt_fake000058 payment_intent.succeeded pi_fake000057
-[poll] 2026-11-12T19:49:03.051Z poll: 4 new, cursor 1794512931 -> 1794512941
-[create] #19 pi_fake000061 succeeded at 2026-11-12T19:49:04.387Z
-[receiver] 2026-11-12T19:49:04.439Z new       evt_fake000062 payment_intent.succeeded pi_fake000061
-[create] #20 pi_fake000064 succeeded at 2026-11-12T19:49:06.007Z
+=== 2026-11-13T05:12:49.880Z side-by-side: 20 payments, 1–4 s apart
+[create] #1 pi_fake000002 succeeded at 2026-11-13T05:12:50.073Z
+[receiver] 2026-11-13T05:12:50.135Z new       evt_fake000003 payment_intent.succeeded pi_fake000002
+[create] #2 pi_fake000005 succeeded at 2026-11-13T05:12:53.365Z
+[receiver] 2026-11-13T05:12:53.416Z new       evt_fake000006 payment_intent.succeeded pi_fake000005
+[create] #3 pi_fake000008 succeeded at 2026-11-13T05:12:54.800Z
+[receiver] 2026-11-13T05:12:54.851Z new       evt_fake000009 payment_intent.succeeded pi_fake000008
+[create] #4 pi_fake000011 succeeded at 2026-11-13T05:12:56.649Z
+[receiver] 2026-11-13T05:12:56.701Z new       evt_fake000012 payment_intent.succeeded pi_fake000011
+[poll] 2026-11-13T05:12:58.533Z poll: 4 new, cursor 1794543168 -> 1794546776
+[create] #5 pi_fake000015 succeeded at 2026-11-13T05:12:59.675Z
+[receiver] 2026-11-13T05:12:59.727Z new       evt_fake000016 payment_intent.succeeded pi_fake000015
+[create] #6 pi_fake000018 succeeded at 2026-11-13T05:13:03.510Z
+[receiver] 2026-11-13T05:13:03.564Z new       evt_fake000019 payment_intent.succeeded pi_fake000018
+[create] #7 pi_fake000021 succeeded at 2026-11-13T05:13:05.793Z
+[receiver] 2026-11-13T05:13:05.845Z new       evt_fake000022 payment_intent.succeeded pi_fake000021
+[poll] 2026-11-13T05:13:08.535Z poll: 3 new, cursor 1794546776 -> 1794546785
+[create] #8 pi_fake000025 succeeded at 2026-11-13T05:13:08.591Z
+[receiver] 2026-11-13T05:13:08.642Z new       evt_fake000026 payment_intent.succeeded pi_fake000025
+[create] #9 pi_fake000028 succeeded at 2026-11-13T05:13:11.818Z
+[receiver] 2026-11-13T05:13:11.870Z new       evt_fake000029 payment_intent.succeeded pi_fake000028
+[create] #10 pi_fake000031 succeeded at 2026-11-13T05:13:12.833Z
+[receiver] 2026-11-13T05:13:12.885Z new       evt_fake000032 payment_intent.succeeded pi_fake000031
+[create] #11 pi_fake000034 succeeded at 2026-11-13T05:13:15.943Z
+[receiver] 2026-11-13T05:13:15.995Z new       evt_fake000035 payment_intent.succeeded pi_fake000034
+[poll] 2026-11-13T05:13:18.539Z poll: 4 new, cursor 1794546785 -> 1794546795
+[create] #12 pi_fake000038 succeeded at 2026-11-13T05:13:19.162Z
+[receiver] 2026-11-13T05:13:19.214Z new       evt_fake000039 payment_intent.succeeded pi_fake000038
+[create] #13 pi_fake000041 succeeded at 2026-11-13T05:13:21.812Z
+[receiver] 2026-11-13T05:13:21.862Z new       evt_fake000042 payment_intent.succeeded pi_fake000041
+[create] #14 pi_fake000044 succeeded at 2026-11-13T05:13:25.097Z
+[receiver] 2026-11-13T05:13:25.149Z new       evt_fake000045 payment_intent.succeeded pi_fake000044
+[poll] 2026-11-13T05:13:28.545Z poll: 3 new, cursor 1794546795 -> 1794546805
+[create] #15 pi_fake000048 succeeded at 2026-11-13T05:13:28.962Z
+[receiver] 2026-11-13T05:13:29.016Z new       evt_fake000049 payment_intent.succeeded pi_fake000048
+[create] #16 pi_fake000051 succeeded at 2026-11-13T05:13:31.373Z
+[receiver] 2026-11-13T05:13:31.424Z new       evt_fake000052 payment_intent.succeeded pi_fake000051
+[create] #17 pi_fake000054 succeeded at 2026-11-13T05:13:33.608Z
+[receiver] 2026-11-13T05:13:33.659Z new       evt_fake000055 payment_intent.succeeded pi_fake000054
+[create] #18 pi_fake000057 succeeded at 2026-11-13T05:13:36.629Z
+[receiver] 2026-11-13T05:13:36.680Z new       evt_fake000058 payment_intent.succeeded pi_fake000057
+[poll] 2026-11-13T05:13:38.548Z poll: 4 new, cursor 1794546805 -> 1794546816
+[create] #19 pi_fake000061 succeeded at 2026-11-13T05:13:38.563Z
+[receiver] 2026-11-13T05:13:38.613Z new       evt_fake000062 payment_intent.succeeded pi_fake000061
+[create] #20 pi_fake000064 succeeded at 2026-11-13T05:13:41.018Z
 done: 20 succeeded, 0 failed (phase=side-by-side)
-[receiver] 2026-11-12T19:49:06.059Z new       evt_fake000065 payment_intent.succeeded pi_fake000064
-[poll] 2026-11-12T19:49:13.055Z poll: 2 new, cursor 1794512941 -> 1794512946
+[receiver] 2026-11-13T05:13:41.071Z new       evt_fake000065 payment_intent.succeeded pi_fake000064
+[poll] 2026-11-13T05:13:48.548Z poll: 2 new, cursor 1794546816 -> 1794546821
 
-=== 2026-11-12T19:49:17.022Z outage: poller off, receiver stopped (SIGTERM), pending snapshots every 4 s
-[receiver] 2026-11-12T19:49:17.028Z SIGTERM: receiver stopped
-[create-outage] #1 pi_fake000068 succeeded at 2026-11-12T19:49:17.232Z
-[snapshot] 2026-11-12T19:49:17.269Z 1 payment_intent.succeeded event(s) not yet delivered: evt_fake000069(1)
-[create-outage] #2 pi_fake000072 succeeded at 2026-11-12T19:49:18.379Z
-[create-outage] #3 pi_fake000075 succeeded at 2026-11-12T19:49:19.846Z
-[create-outage] done: 3 succeeded, 0 failed (phase=outage)
-[snapshot] 2026-11-12T19:49:21.259Z 3 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1) evt_fake000069(1)
-[snapshot] 2026-11-12T19:49:25.262Z 3 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1) evt_fake000069(1)
-[snapshot] 2026-11-12T19:49:29.266Z 3 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1) evt_fake000069(1)
+=== 2026-11-13T05:13:52.027Z outage: poller off, receiver stopped (SIGTERM), pending snapshots every 4 s
+[receiver] 2026-11-13T05:13:52.031Z SIGTERM: receiver stopped
+[create-outage] #1 pi_fake000068 succeeded at 2026-11-13T05:13:52.191Z
+[snapshot] 2026-11-13T05:13:52.208Z 1 payment_intent.succeeded event(s) not yet delivered: evt_fake000069(1)
+[create-outage] #2 pi_fake000072 succeeded at 2026-11-13T05:13:53.665Z
+[create-outage] #3 pi_fake000075 succeeded at 2026-11-13T05:13:54.706Z
+done: 3 succeeded, 0 failed (phase=outage)
+[snapshot] 2026-11-13T05:13:56.206Z 3 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1) evt_fake000069(1)
+[snapshot] 2026-11-13T05:14:00.210Z 3 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1) evt_fake000069(1)
+[snapshot] 2026-11-13T05:14:04.213Z 3 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1) evt_fake000069(1)
 
-=== 2026-11-12T19:49:31.855Z receiver back up; waiting for automatic retries
-[receiver] 2026-11-12T19:49:32.112Z listening on 127.0.0.1:3999, POST /webhooks/stripe
-[receiver] 2026-11-12T19:49:32.292Z new       evt_fake000069 payment_intent.succeeded pi_fake000068
-[snapshot] 2026-11-12T19:49:33.269Z 2 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1)
-[receiver] 2026-11-12T19:49:33.436Z new       evt_fake000073 payment_intent.succeeded pi_fake000072
-[receiver] 2026-11-12T19:49:34.902Z new       evt_fake000076 payment_intent.succeeded pi_fake000075
-[snapshot] 2026-11-12T19:49:37.274Z 0 payment_intent.succeeded event(s) not yet delivered
-[snapshot] 2026-11-12T19:49:41.277Z 0 payment_intent.succeeded event(s) not yet delivered
-[snapshot] 2026-11-12T19:49:45.282Z 0 payment_intent.succeeded event(s) not yet delivered
-[snapshot] 2026-11-12T19:49:49.286Z 0 payment_intent.succeeded event(s) not yet delivered
-[snapshot] 2026-11-12T19:49:53.290Z 0 payment_intent.succeeded event(s) not yet delivered
+=== 2026-11-13T05:14:06.714Z receiver back up; waiting for automatic retries
+[receiver] 2026-11-13T05:14:06.893Z listening on 127.0.0.1:3999, POST /webhooks/stripe
+[receiver] 2026-11-13T05:14:07.249Z new       evt_fake000069 payment_intent.succeeded pi_fake000068
+[snapshot] 2026-11-13T05:14:08.218Z 2 payment_intent.succeeded event(s) not yet delivered: evt_fake000076(1) evt_fake000073(1)
+[receiver] 2026-11-13T05:14:08.721Z new       evt_fake000073 payment_intent.succeeded pi_fake000072
+[receiver] 2026-11-13T05:14:09.759Z new       evt_fake000076 payment_intent.succeeded pi_fake000075
+[snapshot] 2026-11-13T05:14:12.221Z 0 payment_intent.succeeded event(s) not yet delivered
+[snapshot] 2026-11-13T05:14:16.225Z 0 payment_intent.succeeded event(s) not yet delivered
+[snapshot] 2026-11-13T05:14:20.230Z 0 payment_intent.succeeded event(s) not yet delivered
+[snapshot] 2026-11-13T05:14:24.235Z 0 payment_intent.succeeded event(s) not yet delivered
+[snapshot] 2026-11-13T05:14:28.239Z 0 payment_intent.succeeded event(s) not yet delivered
 
-=== 2026-11-12T19:49:56.863Z fake Stripe resends one event (duplicate on purpose)
-[receiver] 2026-11-12T19:49:56.867Z duplicate evt_fake000003 payment_intent.succeeded pi_fake000002
+=== 2026-11-13T05:14:31.722Z fake Stripe resends one event (duplicate on purpose)
+[receiver] 2026-11-13T05:14:31.725Z duplicate evt_fake000003 payment_intent.succeeded pi_fake000002
 
-=== 2026-11-12T19:49:57.368Z try to forget an OUTAGE event: must be refused
+=== 2026-11-13T05:14:32.226Z try to forget an OUTAGE event: must be refused
 [lose-refused!] Error: refusing: evt_fake000076 belongs to a 'outage' payment. Only 'lost-event' payments may be forgotten, so real measurements stay intact.
 
-=== 2026-11-12T19:49:57.432Z lost-event demo on its own payment: create, forget, reconcile twice
-[create-lost] #1 pi_fake000087 succeeded at 2026-11-12T19:49:57.592Z
+=== 2026-11-13T05:14:32.281Z lost-event demo on its own payment: create, forget, reconcile twice
+[create-lost] #1 pi_fake000087 succeeded at 2026-11-13T05:14:32.428Z
 done: 1 succeeded, 0 failed (phase=lost-event)
-[receiver] 2026-11-12T19:49:57.640Z new       evt_fake000088 payment_intent.succeeded pi_fake000087
-[lose-one] 2026-11-12T19:49:58.669Z forgot evt_fake000088 (payment pi_fake000087): 1 processed_events row, 1 seen row deleted
+[receiver] 2026-11-13T05:14:32.477Z new       evt_fake000088 payment_intent.succeeded pi_fake000087
+[lose-one] 2026-11-13T05:14:33.486Z forgot evt_fake000088 (payment pi_fake000087): 1 processed_events row, 1 seen row deleted
 [lose-one] Now run: node reconcile.js
-[reconcile] 2026-11-12T19:49:58.811Z reconcile start
+[reconcile] 2026-11-13T05:14:33.623Z reconcile start
 [reconcile] recovered evt_fake000088 pi_fake000087
 [reconcile] done, 24 events checked, 1 recovered
-[reconcile-again] 2026-11-12T19:49:58.986Z reconcile start
+[reconcile-again] 2026-11-13T05:14:33.763Z reconcile start
 [reconcile-again] done, 24 events checked, 0 recovered
-[receiver] 2026-11-12T19:49:59.012Z SIGTERM: receiver stopped
+[receiver] 2026-11-13T05:14:33.779Z SIGTERM: receiver stopped
 
-=== 2026-11-12T19:49:59.017Z analyze
+=== 2026-11-13T05:14:33.784Z analyze
 [analyze] > **SIMULATED against a local fake Stripe on a compressed timescale. NOT real Stripe data; do not publish these numbers.**
 
 # Results
 
-Generated 2026-11-12T19:49:59.096Z from demo.db. All times UTC. Delay = the moment the poller or
+Generated 2026-11-13T05:14:33.848Z from demo.db. All times UTC. Delay = the moment the poller or
 receiver wrote the payment ID to SQLite − the moment the create call returned (same machine clock).
 Percentiles are nearest-rank. Payments by phase: lost-event 1, outage 3, side-by-side 20.
 
@@ -112,28 +112,29 @@ Percentiles are nearest-rank. Payments by phase: lost-event 1, outage 3, side-by
 | | Polling (every 60 s in the real run) | Webhook |
 |---|---|---|
 | Payments measured | 20 of 20 | 20 of 20 |
-| Median delay | 6.6 s | 0.05 s |
-| 95th percentile delay | 9.4 s | 0.06 s |
-| Worst delay | 9.6 s | 0.07 s |
-| Best delay | 1.3 s | 0.05 s |
-| Stripe API calls / hour, quiet hour | NOT VALID: the poller was not running at the window start (first poll call 2026-11-12T19:48:13.040Z) (1 calls in 2026-11-12T18:48:14.560Z → 2026-11-12T19:48:14.560Z) | 0 |
+| Median delay | 6.2 s | 0.05 s |
+| 95th percentile delay | 9.9 s | 0.06 s |
+| Worst delay | 10.0 s | 0.06 s |
+| Best delay | 1.9 s | 0.05 s |
+| Stripe API calls / hour, quiet hour | NOT VALID: the poller was not running at the window start (first poll call 2026-11-13T05:12:48.533Z) (1 calls in 2026-11-13T04:12:50.073Z → 2026-11-13T05:12:50.073Z) | 0 |
 | Stripe API calls / hour, during the test | 6 in the 60 min from the first payment (INCOMPLETE: poller stopped before the hour ended) | 0 |
-| Code lines (non-blank, non-comment) | 40 (poll.js) | 79 (receiver.js) |
+| Code lines (non-blank, non-comment) | 41 (poll.js) | 79 (receiver.js) |
 
-Median ratio, polling / webhook: **124.5×**. Test window: 2026-11-12T19:48:14.560Z → 2026-11-12T19:49:06.007Z.
+Median ratio, polling / webhook: **119.5×**. Test window: 2026-11-13T05:12:50.073Z → 2026-11-13T05:13:41.018Z.
 
 - Payments the poller never saw: none
 - Payments the webhook never delivered: none
 - Webhooks written before the create call returned (negative delay): 0
 - Webhook arrival-order inversions vs creation order: 0
-- Receiver time from request arrival to SQLite write: median 0.001 s, worst 0.002 s
+- Receiver time from request arrival to SQLite write: median 0.000 s, worst 0.001 s
+- Poll interval actually used: median 10.0 s over 7 runs (NOT the experiment's 60 s)
 
 ## Stripe API requests (every HTTP attempt, list pages and SDK retries included)
 
 | Source | Requests |
 |---|---|
 | poll.js, total | 7 |
-| poll.js, during the side-by-side payment window | 5 in 0.9 min |
+| poll.js, during the side-by-side payment window | 5 in 0.8 min |
 | reconcile.js, total | 2 |
 | snapshot-pending.js, total | 10 |
 | create-payments.js, total | 24 |
@@ -147,18 +148,18 @@ Per-UTC-hour poll counts are in api-calls-by-hour.csv.
 - Same payment delivered under two different event IDs (absorbed by the per-payment seen table): 0
 - Deliveries that arrived more than 300 s after the event was created: 0
 - Failed delivery attempts copied from the Dashboard (manual/dashboard-delivery-attempts.csv): none recorded (the receiver cannot see attempts that never reached it)
-- Stripe's own pending view (snapshot-pending.js): 10 snapshots 2026-11-12T19:49:17.269Z → 2026-11-12T19:49:53.290Z, at most 3 event(s) undelivered at once
+- Stripe's own pending view (snapshot-pending.js): 10 snapshots 2026-11-13T05:13:52.208Z → 2026-11-13T05:14:28.239Z, at most 3 event(s) undelivered at once
 
 ## Outage
 
 Receiver down windows (from receiver_runs; ignore any that weren't the planned outage):
-- down 2026-11-12T19:49:17.028Z → up 2026-11-12T19:49:32.112Z (0.3 min)
+- down 2026-11-13T05:13:52.031Z → up 2026-11-13T05:14:06.893Z (0.2 min)
 
 | Event | Payment created | Failed attempts (Dashboard) | First webhook delivery | Webhook delay | App knew via | Total delay |
 |---|---|---|---|---|---|---|
-| evt_fake000069 | 2026-11-12T19:49:17.232Z | not recorded | 2026-11-12T19:49:32.292Z | 15.1 s | webhook | 15.1 s |
-| evt_fake000073 | 2026-11-12T19:49:18.379Z | not recorded | 2026-11-12T19:49:33.436Z | 15.1 s | webhook | 15.1 s |
-| evt_fake000076 | 2026-11-12T19:49:19.846Z | not recorded | 2026-11-12T19:49:34.902Z | 15.1 s | webhook | 15.1 s |
+| evt_fake000069 | 2026-11-13T05:13:52.191Z | not recorded | 2026-11-13T05:14:07.249Z | 15.1 s | webhook | 15.1 s |
+| evt_fake000073 | 2026-11-13T05:13:53.665Z | not recorded | 2026-11-13T05:14:08.721Z | 15.1 s | webhook | 15.1 s |
+| evt_fake000076 | 2026-11-13T05:13:54.706Z | not recorded | 2026-11-13T05:14:09.759Z | 15.1 s | webhook | 15.1 s |
 
 - Every outage payment was eventually delivered by a webhook retry: **yes**
 - Every outage payment eventually reached the app (any path): **yes**
@@ -167,13 +168,13 @@ Receiver down windows (from receiver_runs; ignore any that weren't the planned o
 ## Reconciliation
 
 - Events recovered by reconcile.js (all runs): 1
-- Payments whose first record came from reconcile: pi_fake000087 (lost-event, 2026-11-12T19:49:58.827Z)
+- Payments whose first record came from reconcile: pi_fake000087 (lost-event, 2026-11-13T05:14:33.635Z)
 
 ### Lost-event demonstration (dedicated payment, separate from the measurements above)
 
 | Event | Payment | Delivered by webhook at | Forgotten at | Recovered by reconcile at |
 |---|---|---|---|---|
-| evt_fake000088 | pi_fake000087 | 2026-11-12T19:49:57.640Z | 2026-11-12T19:49:58.669Z | 2026-11-12T19:49:58.827Z |
+| evt_fake000088 | pi_fake000087 | 2026-11-13T05:14:32.477Z | 2026-11-13T05:14:33.486Z | 2026-11-13T05:14:33.635Z |
 
 ## Versions
 
@@ -182,9 +183,8 @@ Receiver down windows (from receiver_runs; ignore any that weren't the planned o
 - express 5.3.0
 - better-sqlite3 13.1.1
 
-Files: delays.csv (raw per-payment timestamps), outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json.
-
+Files: article-values.md (every article placeholder), delays.csv (raw per-payment timestamps), outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json, raw-request.txt (after a real delivery).
+[analyze] 
 wrote /home/user/T-writing-1/stripe-webhooks-vs-polling/demo-results
 
 real logs/webhook-requests.jsonl and payments.db untouched by the demo
-exit=0

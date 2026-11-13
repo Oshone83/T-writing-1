@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { isMain, PROJECT_DIR } from '../lib/env.js';
+import { isMain, DATA_DIR } from '../lib/env.js';
 
 // Keeps the prefix and first 4 characters of Stripe IDs: pi_3Q9abcdef… -> pi_3Q9a…
 export const shortenIds = (s) => s.replace(/\b((?:evt|pi|ch|pm|req|py|txn|cus|acct|ba)_[A-Za-z0-9]{4})[A-Za-z0-9]{4,}/g, '$1…');
@@ -36,7 +36,7 @@ export function formatSample(r, bodyLines = 20) {
 
 if (isMain(import.meta.url)) {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: { lines: { type: 'string', default: '20' } } });
-  const file = positionals[0] ?? path.join(PROJECT_DIR, 'logs', 'webhook-requests.jsonl');
+  const file = positionals[0] ?? path.join(DATA_DIR, 'logs', 'webhook-requests.jsonl');
   if (!fs.existsSync(file)) throw new Error(`${file} not found. Is the receiver running and has Stripe sent anything?`);
   const r = findGenuine(fs.readFileSync(file, 'utf8').split('\n'));
   if (!r) throw new Error(`no request with a Stripe/ User-Agent in ${file} yet`);

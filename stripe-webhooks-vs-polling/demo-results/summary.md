@@ -2,7 +2,7 @@
 
 # Results
 
-Generated 2026-11-12T19:49:59.096Z from demo.db. All times UTC. Delay = the moment the poller or
+Generated 2026-11-13T05:14:33.848Z from demo.db. All times UTC. Delay = the moment the poller or
 receiver wrote the payment ID to SQLite − the moment the create call returned (same machine clock).
 Percentiles are nearest-rank. Payments by phase: lost-event 1, outage 3, side-by-side 20.
 
@@ -11,28 +11,29 @@ Percentiles are nearest-rank. Payments by phase: lost-event 1, outage 3, side-by
 | | Polling (every 60 s in the real run) | Webhook |
 |---|---|---|
 | Payments measured | 20 of 20 | 20 of 20 |
-| Median delay | 6.6 s | 0.05 s |
-| 95th percentile delay | 9.4 s | 0.06 s |
-| Worst delay | 9.6 s | 0.07 s |
-| Best delay | 1.3 s | 0.05 s |
-| Stripe API calls / hour, quiet hour | NOT VALID: the poller was not running at the window start (first poll call 2026-11-12T19:48:13.040Z) (1 calls in 2026-11-12T18:48:14.560Z → 2026-11-12T19:48:14.560Z) | 0 |
+| Median delay | 6.2 s | 0.05 s |
+| 95th percentile delay | 9.9 s | 0.06 s |
+| Worst delay | 10.0 s | 0.06 s |
+| Best delay | 1.9 s | 0.05 s |
+| Stripe API calls / hour, quiet hour | NOT VALID: the poller was not running at the window start (first poll call 2026-11-13T05:12:48.533Z) (1 calls in 2026-11-13T04:12:50.073Z → 2026-11-13T05:12:50.073Z) | 0 |
 | Stripe API calls / hour, during the test | 6 in the 60 min from the first payment (INCOMPLETE: poller stopped before the hour ended) | 0 |
-| Code lines (non-blank, non-comment) | 40 (poll.js) | 79 (receiver.js) |
+| Code lines (non-blank, non-comment) | 41 (poll.js) | 79 (receiver.js) |
 
-Median ratio, polling / webhook: **124.5×**. Test window: 2026-11-12T19:48:14.560Z → 2026-11-12T19:49:06.007Z.
+Median ratio, polling / webhook: **119.5×**. Test window: 2026-11-13T05:12:50.073Z → 2026-11-13T05:13:41.018Z.
 
 - Payments the poller never saw: none
 - Payments the webhook never delivered: none
 - Webhooks written before the create call returned (negative delay): 0
 - Webhook arrival-order inversions vs creation order: 0
-- Receiver time from request arrival to SQLite write: median 0.001 s, worst 0.002 s
+- Receiver time from request arrival to SQLite write: median 0.000 s, worst 0.001 s
+- Poll interval actually used: median 10.0 s over 7 runs (NOT the experiment's 60 s)
 
 ## Stripe API requests (every HTTP attempt, list pages and SDK retries included)
 
 | Source | Requests |
 |---|---|
 | poll.js, total | 7 |
-| poll.js, during the side-by-side payment window | 5 in 0.9 min |
+| poll.js, during the side-by-side payment window | 5 in 0.8 min |
 | reconcile.js, total | 2 |
 | snapshot-pending.js, total | 10 |
 | create-payments.js, total | 24 |
@@ -46,18 +47,18 @@ Per-UTC-hour poll counts are in api-calls-by-hour.csv.
 - Same payment delivered under two different event IDs (absorbed by the per-payment seen table): 0
 - Deliveries that arrived more than 300 s after the event was created: 0
 - Failed delivery attempts copied from the Dashboard (manual/dashboard-delivery-attempts.csv): none recorded (the receiver cannot see attempts that never reached it)
-- Stripe's own pending view (snapshot-pending.js): 10 snapshots 2026-11-12T19:49:17.269Z → 2026-11-12T19:49:53.290Z, at most 3 event(s) undelivered at once
+- Stripe's own pending view (snapshot-pending.js): 10 snapshots 2026-11-13T05:13:52.208Z → 2026-11-13T05:14:28.239Z, at most 3 event(s) undelivered at once
 
 ## Outage
 
 Receiver down windows (from receiver_runs; ignore any that weren't the planned outage):
-- down 2026-11-12T19:49:17.028Z → up 2026-11-12T19:49:32.112Z (0.3 min)
+- down 2026-11-13T05:13:52.031Z → up 2026-11-13T05:14:06.893Z (0.2 min)
 
 | Event | Payment created | Failed attempts (Dashboard) | First webhook delivery | Webhook delay | App knew via | Total delay |
 |---|---|---|---|---|---|---|
-| evt_fake000069 | 2026-11-12T19:49:17.232Z | not recorded | 2026-11-12T19:49:32.292Z | 15.1 s | webhook | 15.1 s |
-| evt_fake000073 | 2026-11-12T19:49:18.379Z | not recorded | 2026-11-12T19:49:33.436Z | 15.1 s | webhook | 15.1 s |
-| evt_fake000076 | 2026-11-12T19:49:19.846Z | not recorded | 2026-11-12T19:49:34.902Z | 15.1 s | webhook | 15.1 s |
+| evt_fake000069 | 2026-11-13T05:13:52.191Z | not recorded | 2026-11-13T05:14:07.249Z | 15.1 s | webhook | 15.1 s |
+| evt_fake000073 | 2026-11-13T05:13:53.665Z | not recorded | 2026-11-13T05:14:08.721Z | 15.1 s | webhook | 15.1 s |
+| evt_fake000076 | 2026-11-13T05:13:54.706Z | not recorded | 2026-11-13T05:14:09.759Z | 15.1 s | webhook | 15.1 s |
 
 - Every outage payment was eventually delivered by a webhook retry: **yes**
 - Every outage payment eventually reached the app (any path): **yes**
@@ -66,13 +67,13 @@ Receiver down windows (from receiver_runs; ignore any that weren't the planned o
 ## Reconciliation
 
 - Events recovered by reconcile.js (all runs): 1
-- Payments whose first record came from reconcile: pi_fake000087 (lost-event, 2026-11-12T19:49:58.827Z)
+- Payments whose first record came from reconcile: pi_fake000087 (lost-event, 2026-11-13T05:14:33.635Z)
 
 ### Lost-event demonstration (dedicated payment, separate from the measurements above)
 
 | Event | Payment | Delivered by webhook at | Forgotten at | Recovered by reconcile at |
 |---|---|---|---|---|
-| evt_fake000088 | pi_fake000087 | 2026-11-12T19:49:57.640Z | 2026-11-12T19:49:58.669Z | 2026-11-12T19:49:58.827Z |
+| evt_fake000088 | pi_fake000087 | 2026-11-13T05:14:32.477Z | 2026-11-13T05:14:33.486Z | 2026-11-13T05:14:33.635Z |
 
 ## Versions
 
@@ -81,4 +82,4 @@ Receiver down windows (from receiver_runs; ignore any that weren't the planned o
 - express 5.3.0
 - better-sqlite3 13.1.1
 
-Files: delays.csv (raw per-payment timestamps), outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json.
+Files: article-values.md (every article placeholder), delays.csv (raw per-payment timestamps), outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json, raw-request.txt (after a real delivery).

@@ -1,7 +1,8 @@
 // analyze.js — turns payments.db into the article's numbers, raw-timestamp CSVs and a chart.
 //
-//   node analyze.js                      writes results/summary.md, summary.json, delays.csv,
-//                                        outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg
+//   node analyze.js                      writes results/summary.md, article-values.md, summary.json,
+//                                        delays.csv, outage.csv, lost-event.csv, api-calls-by-hour.csv,
+//                                        delay-chart.svg and (after a real delivery) raw-request.txt
 //   node analyze.js --quiet-from 2026-11-20T09:00:00Z --quiet-to 2026-11-20T10:00:00Z
 //   node analyze.js --out some/dir --label "SIMULATED"
 //
@@ -13,7 +14,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { isMain, PROJECT_DIR } from './lib/env.js';
+import { isMain, PROJECT_DIR, DATA_DIR } from './lib/env.js';
+import { renderArticleValues, SCREENSHOTS } from './lib/article.js';
+import { findGenuine, formatSample } from './scripts/sample-request.js';
 import { openDb } from './lib/db.js';
 import { summarize, countInversions, countCodeLines } from './lib/stats.js';
 
@@ -111,6 +114,10 @@ export function analyze(db, { codeFiles = {}, quietFrom, quietTo, manualAttempts
     };
   }
 
+  // The interval the poller actually ran at (gaps under 2 s are extra pages/retries within one run).
+  const runGaps = pollCalls.slice(1).map((t, i) => t - pollCalls[i]).filter((g) => g > 2000);
+  const pollInterval = { ...summarize(runGaps), runs: runGaps.length + (pollCalls.length ? 1 : 0) };
+
   // Per UTC clock hour, for the CSV.
   const byHour = new Map();
   for (const t of pollCalls) { const h = Math.floor(t / HOUR) * HOUR; byHour.set(h, (byHour.get(h) ?? 0) + 1); }
@@ -189,6 +196,10 @@ export function analyze(db, { codeFiles = {}, quietFrom, quietTo, manualAttempts
       total_delay_s: first ? sec(first.seen_ms - p.created_ms) : null,
     };
   });
+  // The planned outage: the receiver down window during which the first outage payment was created.
+  const firstOutageMs = outageRows.length ? Date.parse(outageRows[0].payment_created) : null;
+  const planned = firstOutageMs == null ? null : outages.find((w) =>
+    w.minutes != null && Date.parse(w.down_at) <= firstOutageMs && Date.parse(w.up_at) >= firstOutageMs) ?? null;
   const delivered = outageRows.filter((r) => r.first_webhook_delivery);
   const outageArrival = [...delivered].sort((a, b) => a.first_webhook_delivery.localeCompare(b.first_webhook_delivery));
   const outageRank = new Map(outageRows.map((r, i) => [r.payment_id, i]));
@@ -226,7 +237,7 @@ export function analyze(db, { codeFiles = {}, quietFrom, quietTo, manualAttempts
       webhookBeforeCreateReturned, webhookArrivalInversions: sideBySideInversions,
       perPayment: payments,
     },
-    apiCalls: { totals, quiet, duringTest, byHour: hourRows },
+    apiCalls: { totals, quiet, duringTest, pollInterval, byHour: hourRows },
     deliveries: { ...deliveryTotals, samePaymentMultipleEvents, lateDeliveries },
     dashboard: {
       file_rows: manualRows.length,
@@ -235,7 +246,7 @@ export function analyze(db, { codeFiles = {}, quietFrom, quietTo, manualAttempts
     },
     pendingSnapshots: { runs: snapshotRuns.length, max_pending: Math.max(0, ...snapshotRuns.map((s) => s.pending_webhooks)), first: iso(snapshotRuns[0]?.snapshot_ms), last: iso(snapshotRuns.at(-1)?.snapshot_ms) },
     outage: {
-      windows: outages, payments: outageRows,
+      windows: outages, planned, payments: outageRows,
       allEventuallyKnown: outageRows.every((r) => r.app_knew_via !== 'NEVER'),
       allDeliveredByWebhook: outageRows.every((r) => r.first_webhook_delivery),
       arrivedInCreationOrder: outageInversions === 0, arrivalInversions: outageInversions,
@@ -363,6 +374,7 @@ Median ratio, polling / webhook: **${ratio}×**. Test window: ${s.window ? `${s.
 - Webhooks written before the create call returned (negative delay): ${s.webhookBeforeCreateReturned.length}${s.webhookBeforeCreateReturned.length ? ` (${s.webhookBeforeCreateReturned.join(', ')})` : ''}
 - Webhook arrival-order inversions vs creation order: ${s.webhookArrivalInversions}
 - Receiver time from request arrival to SQLite write: median ${fmt(s.receiverWriteLag.median, 3)} s, worst ${fmt(s.receiverWriteLag.max, 3)} s
+- Poll interval actually used: ${a.pollInterval.median == null ? 'n/a' : `median ${fmt(a.pollInterval.median)} s over ${a.pollInterval.runs} runs`}${a.pollInterval.median != null && Math.abs(a.pollInterval.median - 60_000) > 5_000 ? ' (NOT the experiment\'s 60 s)' : ''}
 
 ## Stripe API requests (every HTTP attempt, list pages and SDK retries included)
 
@@ -409,23 +421,30 @@ ${lostTable}
 
 ${Object.entries(versions).map(([k, v]) => `- ${k} ${v}`).join('\n')}
 
-Files: delays.csv (raw per-payment timestamps), outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json.
+Files: article-values.md (every article placeholder), delays.csv (raw per-payment timestamps), outage.csv, lost-event.csv, api-calls-by-hour.csv, delay-chart.svg, summary.json, raw-request.txt (after a real delivery).
 `;
 }
 
 if (isMain(import.meta.url)) {
   const { values } = parseArgs({
     options: {
-      out: { type: 'string', default: path.join(PROJECT_DIR, 'results') },
+      out: { type: 'string', default: path.join(DATA_DIR, 'results') },
       label: { type: 'string', default: '' },
       'quiet-from': { type: 'string' },
       'quiet-to': { type: 'string' },
-      'manual-attempts': { type: 'string', default: path.join(PROJECT_DIR, MANUAL_ATTEMPTS_FILE) },
+      'manual-attempts': { type: 'string', default: path.join(DATA_DIR, MANUAL_ATTEMPTS_FILE) },
+      'tunnel-tool': { type: 'string' },
     },
   });
   if (!!values['quiet-from'] !== !!values['quiet-to']) throw new Error('give both --quiet-from and --quiet-to, or neither');
   const db = openDb();
   const read = (f) => fs.readFileSync(path.join(PROJECT_DIR, f), 'utf8');
+
+  // Never let simulated data into the real results folder: fake Stripe IDs contain "_fake".
+  const fakeIds = db.prepare("SELECT COUNT(*) n FROM payments WHERE id LIKE '%\\_fake%' ESCAPE '\\'").get().n;
+  if (fakeIds && path.resolve(values.out) === path.join(PROJECT_DIR, 'results')) {
+    throw new Error(`${path.basename(db.name)} contains ${fakeIds} simulated (fake Stripe) payments; refusing to write them to results/. Use --out.`);
+  }
   const manualPath = values['manual-attempts'];
   const result = analyze(db, {
     codeFiles: { 'poll.js': read('poll.js'), 'receiver.js': read('receiver.js') },
@@ -451,6 +470,25 @@ if (isMain(import.meta.url)) {
   out('outage.csv', csv(result.outage.payments));
   out('lost-event.csv', csv(result.lostEvent));
   out('api-calls-by-hour.csv', csv(result.apiCalls.byHour));
+
+  // Inputs for the article-values page that live outside the database.
+  const optional = (f) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null);
+  const tunnelTxt = optional(path.join(DATA_DIR, 'logs', 'tunnel-latency.txt'));
+  const tunnelLatency = tunnelTxt && /median via tunnel:\s*([\d.]+)s[\s\S]*median via localhost:\s*([\d.]+)s[\s\S]*adds about:\s*([-\d.]+)s/.exec(tunnelTxt);
+  const requestLog = optional(process.env.REQUEST_LOG_PATH || path.join(DATA_DIR, 'logs', 'webhook-requests.jsonl'));
+  const genuine = requestLog ? findGenuine(requestLog.split('\n')) : null;
+  const rawRequest = genuine ? formatSample(genuine) : null;
+  if (rawRequest) out('raw-request.txt', rawRequest + '\n');
+  const shotDir = path.join(DATA_DIR, 'evidence', 'screenshots');
+  const shotFiles = fs.existsSync(shotDir) ? fs.readdirSync(shotDir) : [];
+  const screenshots = Object.fromEntries(SCREENSHOTS.map(([name]) => [name, shotFiles.find((f) => f.startsWith(name + '.'))]).filter(([, f]) => f));
+  const toolTxt = optional(path.join(DATA_DIR, 'logs', 'tunnel-tool.txt'));
+  out('article-values.md', renderArticleValues(result, {
+    versions, rawRequest, screenshots, label: values.label,
+    dashboardRows: parseCsv(optional(manualPath) ?? ''),
+    tunnelTool: values['tunnel-tool'] ?? toolTxt?.trim() ?? undefined,
+    tunnelLatency: tunnelLatency ? `via public URL ${tunnelLatency[1]} s, via localhost ${tunnelLatency[2]} s, so the public URL adds about ${tunnelLatency[3]} s` : undefined,
+  }));
   if (result.sideBySide.perPayment.length) out('delay-chart.svg', renderChart(result.sideBySide.perPayment, { label: values.label }));
 
   process.stdout.write(fs.readFileSync(path.join(values.out, 'summary.md'), 'utf8'));

@@ -7,7 +7,7 @@ import { parseArgs } from 'node:util';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { isMain } from './lib/env.js';
 import { openDb, makeHelpers } from './lib/db.js';
-import { createStripe } from './lib/stripe-client.js';
+import { createStripe, assertTestKey } from './lib/stripe-client.js';
 
 export async function createPayments({ db, stripe, count, minGapMs, maxGapMs, phase, log = console.log, signal }) {
   const insert = db.prepare(
@@ -56,6 +56,7 @@ if (isMain(import.meta.url)) {
       'max-gap': { type: 'string', default: '30' },
     },
   });
+  assertTestKey(process.env.STRIPE_SECRET_KEY); // refuse bad keys before creating payments.db
   const db = openDb();
   const { logApiCall } = makeHelpers(db);
   const stripe = createStripe({ onRequest: () => logApiCall('create') });

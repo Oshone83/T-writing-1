@@ -6,7 +6,7 @@ import { parseArgs } from 'node:util';
 import { runEvery } from './lib/loop.js';
 import { isMain } from './lib/env.js';
 import { openDb, makeHelpers } from './lib/db.js';
-import { createStripe } from './lib/stripe-client.js';
+import { createStripe, assertTestKey } from './lib/stripe-client.js';
 
 export async function pollOnce({ db, stripe, now = Date.now() }) {
   const { markSeen } = makeHelpers(db);
@@ -36,6 +36,7 @@ export async function pollOnce({ db, stripe, now = Date.now() }) {
 
 if (isMain(import.meta.url)) {
   const { values } = parseArgs({ options: { every: { type: 'string' } } });
+  assertTestKey(process.env.STRIPE_SECRET_KEY); // refuse bad keys before creating payments.db
   const db = openDb();
   const { logApiCall } = makeHelpers(db);
   // Count every HTTP call, list pages and SDK retries included.

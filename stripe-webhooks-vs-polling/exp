@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# exp — one short command per step of the experiment, made for typing on a phone (GitHub Codespaces).
+# Every step is written to logs/timeline.log with a UTC timestamp. Run ./exp help for the list.
+# Guards stop you from breaking the measurement (too-short quiet hour, outage, etc.); --force overrides.
+set -euo pipefail
+cd "$(dirname "$0")"
+export DATA_DIR="${DATA_DIR:-$PWD}"
+LOGS="$DATA_DIR/logs"; RUN="$DATA_DIR/run"; mkdir -p "$LOGS" "$RUN"
+PORT="${PORT:-3000}"
+
+FORCE=0; ARGS=()
+for a in "$@"; do if [[ "$a" == "--force" ]]; then FORCE=1; else ARGS+=("$a"); fi; done
+set -- "${ARGS[@]+"${ARGS[@]}"}"
+
+now_s() { date -u +%s; }
+iso() { date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ; }
+note() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)  $*" | tee -a "$LOGS/timeline.log"; }
+die() { echo "✗ $*" >&2; exit 1; }
+guard() { if (( FORCE )); then echo "! $* (continuing because of --force)"; else die "$* (add --force to override)"; fi; }
+bg() { ./scripts/bg.sh "$@"; }
+alive() { [[ -f "$RUN/$1.pid" ]] && kill -0 "$(cat "$RUN/$1.pid")" 2>/dev/null; }
+q() { node scripts/exp-status.js "$@"; }
+pid_age_s() { echo $(( $(now_s) - $(stat -c %Y "$RUN/$1.pid") )); }
+
+public_url() {
+  if [[ -f "$LOGS/public-url.txt" ]]; then cat "$LOGS/public-url.txt"
+  elif [[ -n "${CODESPACE_NAME:-}" && -n "${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-}" ]]; then
+    echo "https://${CODESPACE_NAME}-${PORT}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+  fi
+}
+
+# Writes KEY=value into .env (git-ignored, readable only by you). Values are read without echo.
+env_set() {
+  touch .env; chmod 600 .env
+  grep -v "^$1=" .env > .env.tmp || true
+  printf '%s=%s\n' "$1" "$2" >> .env.tmp
+  mv .env.tmp .env; chmod 600 .env
+}
+
+# Creates payments in the background so a closed browser tab can't interrupt them.
+start_create() { # phase count min-gap max-gap
+  if alive create; then die "payments are still being created (pid $(cat "$RUN/create.pid")); wait for them to finish"; fi
+  setsid nohup node create-payments.js --phase "$1" --count "$2" --min-gap "$3" --max-gap "$4" \
+    >> "$LOGS/create-$1.log" 2>&1 < /dev/null &
+  echo $! > "$RUN/create.pid"
+}
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  help|-h|--help)
+    cat <<'EOF'
+Setup
+  ./exp set-api-key            paste your sk_test_/rk_test_ key (skip if it's a Codespaces secret)
+  ./exp set-webhook-secret     paste the whsec_ signing secret of your Stripe event destination
+  ./exp set-url <url>          public URL, only if not in Codespaces (e.g. your cloudflared URL)
+  ./exp url                    print the public webhook URL to register in Stripe
+  ./exp receiver               start the webhook receiver (background)
+  ./exp doctor                 check Node, keys, Stripe API, receiver and public URL
+  ./exp smoke                  one test payment end to end; must print "received by webhook"
+  ./exp tunnel                 measure what the public URL adds (logs/tunnel-latency.txt)
+Experiment
+  ./exp quiet                  A: start the 60-second poller; then wait 65 min, no payments
+  ./exp payments [N]           B: N side-by-side payments (default 100, 5–30 s apart), background
+  ./exp outage-start [N]       C: stop poller + receiver, start Stripe pending snapshots, N outage payments (default 5)
+  ./exp outage-end             C: restart the receiver (≥ 10 min after outage-start)
+  ./exp outage-status          C: which outage payments have arrived by retry
+  ./exp outage-finish          C: stop the snapshots once every outage payment arrived
+  ./exp analyze                D: write results/ (summary.md, article-values.md, CSVs, chart)
+  ./exp lost-event             E: dedicated payment → forget → reconcile ×2 → analyze
+Any time
+  ./exp status                 processes, progress per phase, recent timeline
+  ./exp stop-all               stop every background process
+  --force                      override a guard (only if you know why)
+EOF
+    ;;
+
+  set-api-key)
+    read -rsp "Paste your Stripe TEST-mode secret or restricted key (input hidden): " v; echo
+    [[ "$v" =~ ^(sk|rk)_test_ ]] || die "not a test-mode key (must start with sk_test_ or rk_test_); nothing saved"
+    env_set STRIPE_SECRET_KEY "$v"; note "set-api-key (saved to .env)"
+    ;;
+  set-webhook-secret)
+    read -rsp "Paste the whsec_ signing secret (input hidden): " v; echo
+    [[ "$v" == whsec_* ]] || die "must start with whsec_; nothing saved"
+    env_set STRIPE_WEBHOOK_SECRET "$v"; note "set-webhook-secret (saved to .env)"
+    if alive receiver; then bg stop receiver >/dev/null; bg start receiver >/dev/null; echo "receiver restarted with the new secret"; fi
+    ;;
+  set-url)
+    [[ "${1:-}" == https://* ]] || die "usage: ./exp set-url https://…"
+    echo "${1%/}" > "$LOGS/public-url.txt"; note "public URL set to ${1%/}"
+    [[ -n "${2:-}" ]] && echo "$2" > "$LOGS/tunnel-tool.txt"
+    ;;
+  url)
+    u="$(public_url)"
+    if [[ -z "$u" ]]; then die "no public URL: not in Codespaces and none set (./exp set-url https://…)"; fi
+    echo "Public base URL:      $u"
+    echo "Register in Stripe:   $u/webhooks/stripe"
+    [[ -n "${CODESPACE_NAME:-}" ]] && echo "(Ports panel: port $PORT must be set to Public visibility)"
+    ;;
+
+  receiver)
+    bg start receiver; note "receiver started"
+    ;;
+  doctor)
+    node scripts/doctor.js
+    if alive receiver && curl -s --noproxy '*' -m 5 "http://127.0.0.1:$PORT/health" | grep -q ok; then echo "✓ receiver running and healthy on 127.0.0.1:$PORT"
+    else echo "✗ receiver not running (./exp receiver)"; fi
+    u="$(public_url)"
+    if [[ -z "$u" ]]; then echo "✗ no public URL (Codespaces not detected; ./exp set-url https://…)"
+    elif [[ "$(curl -s -m 10 "$u/health" || true)" == "ok" ]]; then echo "✓ public URL reaches the receiver: $u"
+    else echo "✗ public URL does not reach the receiver: $u (Codespaces: set port $PORT to Public; receiver running?)"; fi
+    alive poller && echo "• poller running (started $(pid_age_s poller) s ago)" || echo "• poller not running"
+    ;;
+  smoke)
+    alive receiver || die "start the receiver first: ./exp receiver"
+    note "smoke test: creating 1 payment"
+    node create-payments.js --phase smoke --count 1 --min-gap 0 --max-gap 0
+    if q wait-latest smoke 90; then
+      note "smoke test passed"
+      node scripts/sample-request.js 2>/dev/null | head -n 8 || echo "(a genuine Stripe/ request appears here once Stripe itself delivers)"
+    else
+      note "smoke test FAILED"
+      echo "Check Stripe Dashboard → Workbench → Webhooks → your destination → Event deliveries:"
+      echo "  400 = wrong signing secret (./exp set-webhook-secret)   404 = URL must end in /webhooks/stripe"
+      echo "  502/timeout = port not Public or receiver down          none at all = destination not subscribed to payment_intent.succeeded, or Thin payload chosen"
+      exit 1
+    fi
+    ;;
+  tunnel)
+    u="${1:-$(public_url)}"; [[ -n "$u" ]] || die "no public URL (./exp set-url https://…)"
+    alive receiver || die "start the receiver first: ./exp receiver"
+    PORT="$PORT" ./scripts/measure-tunnel.sh "$u" 2>/dev/null | tee "$LOGS/tunnel-latency.txt"
+    if [[ ! -f "$LOGS/tunnel-tool.txt" && -n "${CODESPACE_NAME:-}" ]]; then echo "GitHub Codespaces port forwarding" > "$LOGS/tunnel-tool.txt"; fi
+    note "tunnel latency measured (logs/tunnel-latency.txt)"
+    ;;
+
+  quiet)
+    alive receiver || guard "receiver is not running; start it first (./exp receiver) so it's ready for phase B"
+    bg start poller
+    note "A: poller started (every 60 s). Don't create payments before $(iso $(( $(now_s) + 65*60 )))"
+    ;;
+  payments)
+    n="${1:-100}"
+    alive poller || die "the poller isn't running: ./exp quiet (then wait 65 min)"
+    alive receiver || die "the receiver isn't running: ./exp receiver"
+    age=$(pid_age_s poller)
+    (( age >= 65*60 )) || guard "the poller has run only $(( age / 60 )) min; the quiet hour needs 65 min with no payments (ready at $(iso $(( $(stat -c %Y "$RUN/poller.pid") + 65*60 ))))"
+    [[ -z "$(q first-payment side-by-side)" ]] || guard "side-by-side payments already exist; a second batch would mix two runs"
+    start_create side-by-side "$n" 5 30
+    note "B: creating $n side-by-side payments (5–30 s apart) in the background. Keep the poller running until $(iso $(( $(now_s) + 60*60 ))) or later"
+    echo "Progress: ./exp status    Log: logs/create-side-by-side.log"
+    ;;
+  outage-start)
+    n="${1:-5}"
+    alive create && die "side-by-side payments are still being created; wait (./exp status)"
+    first="$(q first-payment side-by-side)"
+    [[ -n "$first" ]] || guard "no side-by-side payments yet (phase B)"
+    if [[ -n "$first" ]] && (( $(now_s) < first/1000 + 3600 )); then
+      guard "the poller must run until 60 min after the first payment ($(iso $(( first/1000 + 3600 ))))"
+    fi
+    bg stop poller || true
+    bg stop receiver || true
+    bg start snapshot
+    start_create outage "$n" 5 30
+    note "C: outage started. Poller and receiver stopped (public URL left up), Stripe pending snapshots every 5 min, $n outage payments in the background. Earliest ./exp outage-end: $(iso $(( $(now_s) + 10*60 )))"
+    echo "Now: screenshot Workbench → Webhooks → your destination → Event deliveries → evidence/screenshots/outage-deliveries-failed.png"
+    echo "and copy each failed attempt into manual/dashboard-delivery-attempts.csv"
+    ;;
+  outage-end)
+    alive create && die "outage payments are still being created; wait (./exp status)"
+    stop="$(q last-stop)"; [[ -n "$stop" ]] || guard "no recorded receiver stop; was ./exp outage-start run?"
+    if [[ -n "$stop" ]] && (( $(now_s) < stop/1000 + 600 )); then
+      guard "the receiver has been down only $(( ($(now_s) - stop/1000) / 60 )) min; keep it down ≥ 10 min (until $(iso $(( stop/1000 + 600 ))))"
+    fi
+    bg start receiver
+    note "C: receiver restarted. Don't press Resend in the Dashboard; Stripe retries sandbox deliveries three times over a few hours"
+    echo "Check progress: ./exp outage-status"
+    ;;
+  outage-status)
+    q outage
+    echo "undelivered: $(q outage-undelivered)"
+    ;;
+  outage-finish)
+    left="$(q outage-undelivered)"
+    (( left == 0 )) || guard "$left outage payment(s) not yet delivered by a retry; Stripe retries over a few hours. If the Dashboard shows no retries left, use --force and then ./exp lost-event / node reconcile.js"
+    bg stop snapshot || true
+    note "C: outage finished; snapshots stopped"
+    echo "Now: screenshot Event deliveries again → evidence/screenshots/outage-deliveries-final.png, then ./exp analyze"
+    ;;
+
+  analyze)
+    node analyze.js "$@"
+    note "D: analyzed → results/ (article values: results/article-values.md)"
+    ;;
+  lost-event)
+    alive receiver || die "start the receiver first: ./exp receiver"
+    alive create && die "payments are still being created; wait"
+    note "E: lost-event demo: creating its dedicated payment"
+    node create-payments.js --phase lost-event --count 1 --min-gap 0 --max-gap 0 | tee -a "$LOGS/reconcile-demo.log"
+    q wait-latest lost-event 120 | tee -a "$LOGS/reconcile-demo.log"
+    node simulate-lost-event.js | tee -a "$LOGS/reconcile-demo.log"
+    node reconcile.js | tee -a "$LOGS/reconcile-demo.log"
+    node reconcile.js | tee -a "$LOGS/reconcile-demo.log"
+    note "E: lost-event demo done (logs/reconcile-demo.log)"
+    node analyze.js > /dev/null && echo "results/ updated"
+    ;;
+
+  status)
+    bg status
+    alive create && echo "create: running (pid $(cat "$RUN/create.pid"))" || true
+    echo; q status
+    u="$(public_url)"; [[ -n "$u" ]] && echo "public URL: $u"
+    if [[ -f "$LOGS/timeline.log" ]]; then echo; echo "recent steps:"; tail -n 5 "$LOGS/timeline.log"; fi
+    ;;
+  stop-all)
+    for p in snapshot reconcile poller receiver; do bg stop "$p" >/dev/null || true; done
+    if alive create; then kill -TERM "$(cat "$RUN/create.pid")"; fi
+    rm -f "$RUN/create.pid"; note "stopped everything"
+    ;;
+  *) die "unknown command '$cmd' (./exp help)" ;;
+esac

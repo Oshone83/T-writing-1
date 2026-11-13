@@ -11,7 +11,7 @@
 import { parseArgs } from 'node:util';
 import { isMain } from './lib/env.js';
 import { openDb, makeHelpers } from './lib/db.js';
-import { createStripe } from './lib/stripe-client.js';
+import { createStripe, assertTestKey } from './lib/stripe-client.js';
 import { runEvery } from './lib/loop.js';
 
 export async function snapshotPending({ db, stripe, sinceHours = 24, now = Date.now(), log = console.log }) {
@@ -36,6 +36,7 @@ export async function snapshotPending({ db, stripe, sinceHours = 24, now = Date.
 
 if (isMain(import.meta.url)) {
   const { values } = parseArgs({ options: { every: { type: 'string' }, 'since-hours': { type: 'string', default: '24' } } });
+  assertTestKey(process.env.STRIPE_SECRET_KEY); // refuse bad keys before creating payments.db
   const db = openDb();
   const { logApiCall } = makeHelpers(db);
   const stripe = createStripe({ onRequest: () => logApiCall('snapshot') });

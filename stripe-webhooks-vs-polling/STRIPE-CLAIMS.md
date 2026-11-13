@@ -1,6 +1,6 @@
 # Stripe claims: what was checked, and how
 
-Checked on **2026-11-12** against the official Stripe docs (fetched from docs.stripe.com) and the
+Checked on **2026-11-12/13** against the official Stripe docs (fetched from docs.stripe.com) and the
 installed `stripe` Node SDK 23.1.0. Stripe changes its docs; re-check before publishing.
 
 ## Verified against official Stripe documentation
@@ -28,6 +28,24 @@ installed `stripe` Node SDK 23.1.0. Stripe changes its docs; re-check before pub
 **Consequence for this project:** the Dashboard's default payload format is **Thin**. This receiver
 handles **Snapshot** events (it reads the PaymentIntent from `event.data.object`), so you must pick
 **Snapshot** when creating the destination.
+
+## API parameters the scripts send (checked 2026-11-13 against the API reference)
+
+| Script | Call and parameters | Documentation |
+|---|---|---|
+| create-payments.js | `POST /v1/payment_intents` with `amount`, `currency`, `payment_method`, `confirm`, `automatic_payment_methods`, `metadata` | All listed on docs.stripe.com/api/payment_intents/create. `confirm`: "Set to true to attempt to confirm this PaymentIntent immediately." `allow_redirects` is a child of `automatic_payment_methods` (collapsed on the page; present in the SDK's request typings) |
+| create-payments.js | `payment_method: 'pm_card_visa'` | docs.stripe.com/testing: "When writing test code, use a PaymentMethod such as pm_card_visa instead of a card number." |
+| poll.js | `GET /v1/payment_intents` with `created[gte]`, `limit` | docs.stripe.com/api/payment_intents/list (`created` object, `limit`) |
+| reconcile.js | `GET /v1/events` with `type`, `created[gte]`, `limit` | docs.stripe.com/api/events/list (`type`, `created`, `limit`) |
+| snapshot-pending.js | `GET /v1/events` with `delivery_success=false` | docs.stripe.com/api/events/list (`delivery_success`) |
+
+## Real API connectivity (2026-11-13, no payment made)
+
+Run from the build environment with a deliberately invalid test key: poll.js, reconcile.js,
+snapshot-pending.js and create-payments.js each reached `api.stripe.com`, got Stripe's real
+`401 StripeAuthenticationError`, stopped after exactly one counted request, and recorded no payment.
+Responses to a valid key (succeeded status, list shapes, webhook delivery) are still unverified
+until the live run's `./exp smoke`.
 
 ## Verified in the installed SDK source (stripe-node 23.1.0), not in the docs
 

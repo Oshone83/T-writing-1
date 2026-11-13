@@ -1,9 +1,9 @@
 // lib/db.js — one shared SQLite file for every process in the experiment.
 import Database from 'better-sqlite3';
-import { PROJECT_DIR } from './env.js';
+import { DATA_DIR } from './env.js';
 import path from 'node:path';
 
-export const DEFAULT_DB_PATH = path.join(PROJECT_DIR, 'payments.db');
+export const DEFAULT_DB_PATH = path.join(DATA_DIR, 'payments.db');
 
 export function openDb(file = process.env.DB_PATH || DEFAULT_DB_PATH) {
   const db = new Database(file);

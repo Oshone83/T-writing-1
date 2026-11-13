@@ -22,7 +22,8 @@
     "create:lost": "node create-payments.js --count 1 --phase lost-event",
     "reconcile:loop": "node reconcile.js --every 3600",
     "snapshot": "node snapshot-pending.js",
-    "sample-request": "node scripts/sample-request.js"
+    "sample-request": "node scripts/sample-request.js",
+    "selftest": "node test/phone-flow.selftest.js"
   },
   "dependencies": {
     "better-sqlite3": "^13.1.1",
