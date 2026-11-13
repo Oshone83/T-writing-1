@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" font-family="system-ui, -apple-system, Segoe UI, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">Delay from payment to "app knows", per payment</title>
+<desc id="d">Circles: polling. Squares: webhook. x: when the payment succeeded; y: how long until the app knew.</desc>
+<style>
+  svg { --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e4e3df; --poll:#2a78d6; --webhook:#eb6834; }
+  @media (prefers-color-scheme: dark) { svg { --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#3a3936; --poll:#3987e5; --webhook:#d95926; } }
+  .bg { fill: var(--surface); } .title { fill: var(--ink); font-size: 17px; font-weight: 600; }
+  .sub, .tick, .axis, .legend { fill: var(--ink2); font-size: 12px; }
+  .grid { stroke: var(--grid); } .zero { stroke: var(--ink2); }
+  .poll { fill: var(--poll); stroke: var(--surface); stroke-width: 2; }
+  .webhook { fill: var(--webhook); stroke: var(--surface); stroke-width: 2; }
+</style>
+<rect class="bg" width="900" height="420"/>
+<text class="title" x="64" y="28">Delay from payment to "app knows", per payment</text>
+<text class="sub" x="64" y="48">SIMULATED · 10 payments · poll every 5 s</text>
+<g transform="translate(686, 44)">
+  <circle class="poll" cx="6" cy="0" r="5"/><text class="legend" x="16" y="4">Polling</text>
+  <rect class="webhook" x="80" y="-4.5" width="9" height="9" rx="1.5"/><text class="legend" x="95" y="4">Webhook</text>
+</g>
+<line class="zero" x1="64" x2="876" y1="364.0" y2="364.0"/><text class="tick" x="56" y="368.0" text-anchor="end">0</text>
+<line class="grid" x1="64" x2="876" y1="306.4" y2="306.4"/><text class="tick" x="56" y="310.4" text-anchor="end">1</text>
+<line class="grid" x1="64" x2="876" y1="248.8" y2="248.8"/><text class="tick" x="56" y="252.8" text-anchor="end">2</text>
+<line class="grid" x1="64" x2="876" y1="191.2" y2="191.2"/><text class="tick" x="56" y="195.2" text-anchor="end">3</text>
+<line class="grid" x1="64" x2="876" y1="133.6" y2="133.6"/><text class="tick" x="56" y="137.6" text-anchor="end">4</text>
+<line class="grid" x1="64" x2="876" y1="76.0" y2="76.0"/><text class="tick" x="56" y="80.0" text-anchor="end">5</text>
+<text class="tick" x="64.0" y="382" text-anchor="middle">0</text>
+<text class="tick" x="226.4" y="382" text-anchor="middle">2</text>
+<text class="tick" x="388.8" y="382" text-anchor="middle">4</text>
+<text class="tick" x="551.2" y="382" text-anchor="middle">6</text>
+<text class="tick" x="713.6" y="382" text-anchor="middle">8</text>
+<text class="tick" x="876.0" y="382" text-anchor="middle">10</text>
+<text class="axis" x="470" y="406" text-anchor="middle">Seconds since the first payment</text>
+<text class="axis" transform="translate(18 220) rotate(-90)" text-anchor="middle">Delay (s)</text>
+<circle class="poll" cx="64.0" cy="76.9" r="5"><title>Polling · pi_sim_000001 · delay 4.99 s</title></circle>
+<circle class="poll" cx="149.1" cy="137.2" r="5"><title>Polling · pi_sim_000003 · delay 3.94 s</title></circle>
+<circle class="poll" cx="259.0" cy="215.2" r="5"><title>Polling · pi_sim_000005 · delay 2.58 s</title></circle>
+<circle class="poll" cx="383.4" cy="303.4" r="5"><title>Polling · pi_sim_000007 · delay 1.05 s</title></circle>
+<circle class="poll" cx="498.7" cy="97.1" r="5"><title>Polling · pi_sim_000009 · delay 4.63 s</title></circle>
+<circle class="poll" cx="559.6" cy="140.3" r="5"><title>Polling · pi_sim_000011 · delay 3.88 s</title></circle>
+<circle class="poll" cx="619.9" cy="183.1" r="5"><title>Polling · pi_sim_000013 · delay 3.14 s</title></circle>
+<circle class="poll" cx="671.6" cy="219.8" r="5"><title>Polling · pi_sim_000015 · delay 2.50 s</title></circle>
+<circle class="poll" cx="726.2" cy="258.5" r="5"><title>Polling · pi_sim_000017 · delay 1.83 s</title></circle>
+<circle class="poll" cx="779.5" cy="296.4" r="5"><title>Polling · pi_sim_000019 · delay 1.17 s</title></circle>
+<rect class="webhook" x="59.5" y="357.5" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000001 · delay 0.04 s</title></rect>
+<rect class="webhook" x="144.6" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000003 · delay 0.02 s</title></rect>
+<rect class="webhook" x="254.5" y="358.1" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000005 · delay 0.02 s</title></rect>
+<rect class="webhook" x="378.9" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000007 · delay 0.02 s</title></rect>
+<rect class="webhook" x="494.2" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000009 · delay 0.02 s</title></rect>
+<rect class="webhook" x="555.1" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000011 · delay 0.02 s</title></rect>
+<rect class="webhook" x="615.4" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000013 · delay 0.02 s</title></rect>
+<rect class="webhook" x="667.1" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000015 · delay 0.02 s</title></rect>
+<rect class="webhook" x="721.7" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000017 · delay 0.02 s</title></rect>
+<rect class="webhook" x="775.0" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000019 · delay 0.02 s</title></rect>
+</svg>

@@ -4,7 +4,7 @@ import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import { openDb } from '../lib/db.js';
-import { createApp, _internal } from '../receiver.js';
+import { createApp } from '../receiver.js';
 
 const secret = 'whsec_test_secret_for_unit_tests';
 let db, server, url;
@@ -31,8 +31,8 @@ test('valid signature: 200, payment marked seen by webhook, delivery logged', as
   assert.equal(db.prepare("SELECT COUNT(*) n FROM seen WHERE id='pi_a' AND method='webhook'").get().n, 1);
   const d = db.prepare('SELECT * FROM deliveries').get();
   assert.equal(d.event_id, 'evt_a');
+  assert.equal(d.payment_id, 'pi_a');
   assert.equal(d.duplicate, 0);
-  assert.ok(d.signature_t > 0);
 });
 
 test('duplicate delivery of the same event ID is a no-op that still returns 200', async () => {
@@ -64,10 +64,6 @@ test('other event types are remembered but do not mark a payment seen', async ()
   assert.equal(db.prepare('SELECT COUNT(*) n FROM processed_events').get().n, 1);
 });
 
-test('signatureTime parses t= from the header', () => {
-  assert.equal(_internal.signatureTime('t=1700000000,v1=abc,v0=def'), 1700000000);
-  assert.equal(_internal.signatureTime('v1=abc'), null);
-});
 
 test('createApp refuses to start without a whsec_ secret', () => {
   assert.throws(() => createApp({ db, endpointSecret: undefined }), /STRIPE_WEBHOOK_SECRET/);

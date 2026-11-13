@@ -1,9 +1,0 @@
-# crontab -e, then paste these with your real path. Logs go to logs/ (create it first: mkdir -p logs).
-# The scripts load .env themselves. Use the full path to node if cron can't find it (`which node`).
-# No cron (GitHub Codespaces, Windows)? Use ./scripts/bg.sh instead, which runs the same intervals.
-
-# Phases A and B (measuring polling): the 60-second poller. Do not change the interval.
-* * * * * cd /path/to/stripe-webhooks-vs-polling && node poll.js >> logs/poll.log 2>&1
-
-# What I run now: the hourly catch-up job instead of the poller.
-# 0 * * * * cd /path/to/stripe-webhooks-vs-polling && node reconcile.js >> logs/reconcile.log 2>&1

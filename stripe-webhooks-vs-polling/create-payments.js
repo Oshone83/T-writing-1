@@ -1,75 +1,63 @@
-// create-payments.js — creates N test PaymentIntents at random 5–30 s gaps and records
-// the moment each create call returned ("payment created").
+// create-payments.js — creates test payments, and records the moment each one succeeded.
 //
-//   node create-payments.js --count 100 --phase side-by-side
-//   node create-payments.js --count 5   --phase outage
+//   npm run pay                                   3 payments, 1–3 s apart
+//   node create-payments.js --count 10 --min-gap 5 --max-gap 30
+//   node create-payments.js --payment-method pm_card_threeDSecure2Required   needs 3-D Secure first
+//
+// Uses Stripe's test PaymentMethod pm_card_visa: in test mode it succeeds immediately, no card number.
 import { parseArgs } from 'node:util';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { isMain } from './lib/env.js';
 import { openDb, makeHelpers } from './lib/db.js';
-import { createStripe, assertTestKey } from './lib/stripe-client.js';
+import { createStripe } from './lib/stripe-client.js';
 
-export async function createPayments({ db, stripe, count, minGapMs, maxGapMs, phase, log = console.log, signal }) {
-  const insert = db.prepare(
-    'INSERT INTO payments (id, created_ms, stripe_created_s, phase) VALUES (?, ?, ?, ?)'
-  );
-  let ok = 0;
-  let failed = 0;
-  for (let i = 0; i < count && !signal?.aborted; i++) {
-    try {
-      const pi = await stripe.paymentIntents.create({
-        amount: 1000,
-        currency: 'usd',
-        payment_method: 'pm_card_visa', // Stripe's test card; only exists in test mode
-        confirm: true,
-        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-        metadata: { experiment: 'webhook-vs-polling', phase },
-      });
-      const createdMs = Date.now(); // payment created: the create call has returned
-      if (pi.status !== 'succeeded') {
-        log(`#${i + 1} ${pi.id} status=${pi.status} (not succeeded, not counted)`);
-        failed++;
-      } else {
-        insert.run(pi.id, createdMs, pi.created, phase);
-        ok++;
-        log(`#${i + 1} ${pi.id} succeeded at ${new Date(createdMs).toISOString()}`);
-      }
-    } catch (err) {
-      failed++;
-      log(`#${i + 1} create failed: ${err.type ?? ''} ${err.message}`);
-      if (err.type === 'StripeAuthenticationError') throw err; // no point retrying a bad key
-    }
-    if (i < count - 1) {
-      const gap = minGapMs + Math.random() * (maxGapMs - minGapMs);
-      await sleep(gap, undefined, { signal }).catch(() => {});
-    }
+export async function createPayment({ db, stripe, phase = 'manual', paymentMethod = 'pm_card_visa' }) {
+  const pi = await stripe.paymentIntents.create({
+    amount: 1000,
+    currency: 'usd',
+    payment_method: paymentMethod,
+    confirm: true,
+    automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+  });
+  // "Payment created" = the moment the create call returned a succeeded payment. Delays are measured
+  // from here. A payment still waiting for 3-D Secure isn't paid yet, so it isn't recorded.
+  if (pi.status === 'succeeded') {
+    db.prepare('INSERT INTO payments (id, created_ms, phase) VALUES (?, ?, ?)').run(pi.id, Date.now(), phase);
   }
-  return { ok, failed };
+  return pi;
+}
+
+export async function createPayments({ db, stripe, count, minGapMs, maxGapMs, phase, log = console.log }) {
+  const created = [];
+  for (let i = 0; i < count; i++) {
+    const pi = await createPayment({ db, stripe, phase });
+    created.push(pi);
+    log(`payment ${i + 1}/${count}: ${pi.id} ${pi.status}`);
+    if (i < count - 1) await sleep(minGapMs + Math.random() * (maxGapMs - minGapMs));
+  }
+  return created;
 }
 
 if (isMain(import.meta.url)) {
   const { values } = parseArgs({
     options: {
-      count: { type: 'string', default: '100' },
-      phase: { type: 'string', default: 'side-by-side' },
-      'min-gap': { type: 'string', default: '5' },
-      'max-gap': { type: 'string', default: '30' },
+      count: { type: 'string', default: '3' },
+      'min-gap': { type: 'string', default: '1' },
+      'max-gap': { type: 'string', default: '3' },
+      'payment-method': { type: 'string', default: 'pm_card_visa' },
+      phase: { type: 'string', default: 'manual' },
     },
   });
-  assertTestKey(process.env.STRIPE_SECRET_KEY); // refuse bad keys before creating payments.db
   const db = openDb();
   const { logApiCall } = makeHelpers(db);
   const stripe = createStripe({ onRequest: () => logApiCall('create') });
-  const ac = new AbortController();
-  process.on('SIGINT', () => { console.log('\nstopping after the current payment…'); ac.abort(); });
-
-  const result = await createPayments({
-    db, stripe,
-    count: Number(values.count),
-    phase: values.phase,
-    minGapMs: Number(values['min-gap']) * 1000,
-    maxGapMs: Number(values['max-gap']) * 1000,
-    signal: ac.signal,
-  });
-  console.log(`done: ${result.ok} succeeded, ${result.failed} failed (phase=${values.phase})`);
+  if (values['payment-method'] !== 'pm_card_visa') {
+    const pi = await createPayment({ db, stripe, phase: values.phase, paymentMethod: values['payment-method'] });
+    console.log(`${pi.id} ${pi.status}`);
+  } else {
+    await createPayments({
+      db, stripe, phase: values.phase, count: Number(values.count),
+      minGapMs: Number(values['min-gap']) * 1000, maxGapMs: Number(values['max-gap']) * 1000,
+    });
+  }
 }

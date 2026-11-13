@@ -1,29 +1,22 @@
 {
   "name": "stripe-webhooks-vs-polling",
   "version": "1.0.0",
-  "description": "Experiment: Stripe payment polling vs webhooks, an endpoint outage, and an hourly reconcile job (test mode only)",
+  "description": "Webhooks vs API polling with Stripe: a working, testable example with a local fake Stripe",
   "type": "module",
   "private": true,
   "engines": {
     "node": ">=22"
   },
   "scripts": {
+    "demo": "node demo.js",
     "test": "node --test --test-reporter=spec test/*.test.js",
+    "fake-stripe": "node fake-stripe.js",
     "receiver": "node receiver.js",
     "poll": "node poll.js",
-    "poll:loop": "node poll.js --every 60",
-    "create": "node create-payments.js --count 100 --phase side-by-side",
-    "create:outage": "node create-payments.js --count 5 --phase outage",
+    "pay": "node create-payments.js",
     "reconcile": "node reconcile.js",
-    "lose-one": "node simulate-lost-event.js",
-    "analyze": "node analyze.js",
-    "demo": "node scripts/demo.js",
-    "create:smoke": "node create-payments.js --count 1 --phase smoke",
-    "create:lost": "node create-payments.js --count 1 --phase lost-event",
-    "reconcile:loop": "node reconcile.js --every 3600",
-    "snapshot": "node snapshot-pending.js",
-    "sample-request": "node scripts/sample-request.js",
-    "selftest": "node test/phone-flow.selftest.js"
+    "report": "node report.js",
+    "reset": "node -e \"for (const f of ['payments.db','payments.db-wal','payments.db-shm']) require('fs').rmSync(f,{force:true})\" && echo database deleted"
   },
   "dependencies": {
     "better-sqlite3": "^13.1.1",

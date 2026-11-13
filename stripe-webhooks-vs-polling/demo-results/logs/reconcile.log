@@ -1,4 +1,0 @@
-<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
-2026-11-13T05:14:33.623Z reconcile start
-recovered evt_fake000088 pi_fake000087
-done, 24 events checked, 1 recovered

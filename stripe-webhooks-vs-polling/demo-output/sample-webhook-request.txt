@@ -1,0 +1,36 @@
+# One webhook request as the receiver saw it. SIMULATED: sent by fake-stripe.js, not Stripe.
+# Like Stripe, it is a plain POST with a JSON event (id, type, data.object) and a Stripe-Signature
+# header holding a timestamp (t=) and an HMAC signature (v1=). Other headers and fields differ.
+
+POST /webhooks/stripe
+{
+  "host": "127.0.0.1:36303",
+  "connection": "keep-alive",
+  "content-type": "application/json; charset=utf-8",
+  "stripe-signature": "t=1794590378,v1=148aee966d83d5cc39760c1c3b8adf9abe96f8710cba0ada6d5a3cd062db877a",
+  "user-agent": "FakeStripe/1.0 (local simulation)",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "389"
+}
+{
+  "id": "evt_sim_000002",
+  "object": "event",
+  "type": "payment_intent.succeeded",
+  "created": 1794590378,
+  "livemode": false,
+  "pending_webhooks": 1,
+  "data": {
+    "object": {
+      "id": "pi_sim_000001",
+      "object": "payment_intent",
+      "amount": 1000,
+      "currency": "usd",
+      "created": 1794590378,
+      "livemode": false,
+      "status": "succeeded"
+    }
+  }
+}

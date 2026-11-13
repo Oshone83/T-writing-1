@@ -1,25 +1,19 @@
-// lib/env.js — load .env from the project folder (Node's built-in loader, no dotenv needed).
+// lib/env.js — shared start-up code for every script.
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
 
 export const PROJECT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-// Where payments.db, logs/, run/ and results/ live. Defaults to the project folder; the self-tests
-// point it elsewhere so they never touch the real experiment's data.
-export const DATA_DIR = path.resolve(process.env.DATA_DIR || PROJECT_DIR);
 
+// Load .env from the project folder (Node's built-in loader). Variables already set in the shell win.
 const envFile = path.join(PROJECT_DIR, '.env');
-if (fs.existsSync(envFile)) {
-  // Variables already set in the shell win over the file.
-  process.loadEnvFile(envFile);
-}
+if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
-// True when the given module file was the one started with `node <file>`.
+// True when this module is the file that was started with `node <file>`.
 export const isMain = (metaUrl) =>
-  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(metaUrl);
+  Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(metaUrl);
 
-// Plain one-line errors for the command-line scripts (DEBUG=1 shows the stack).
-// Left alone under `node --test`, which reports errors itself.
+// Print one-line errors instead of stack traces (DEBUG=1 shows the stack). Not under `node --test`.
 if (!process.env.NODE_TEST_CONTEXT) {
   const report = (err) => {
     console.error(`Error: ${err?.message ?? err}`);

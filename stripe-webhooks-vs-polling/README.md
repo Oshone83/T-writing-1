@@ -1,273 +1,263 @@
-# Stripe payments: polling vs webhooks, an outage, and the poll I kept
+# Webhooks vs API polling, with Stripe payments
 
-Companion code for *I replaced payment polling with webhooks, then killed the endpoint: what I measured*.
+A small, working Node.js project that learns about new payments in two ways, **polling** and
+**webhooks**, and then breaks things on purpose: it switches the webhook endpoint off, delivers an
+event twice, and lets retries run out, to show why a webhook setup still needs a recovery job.
 
-It measures, per payment, how long a **60-second poller** and a **webhook** take to learn about a new
-Stripe payment. It then switches the webhook endpoint off to watch Stripe's retries, and recovers a
-lost event with an hourly reconcile job. **Stripe test mode only:** every script refuses live keys.
+It runs entirely on your machine against **`fake-stripe.js`, a local simulation of Stripe**, so you
+need no Stripe account, no keys and no public URL. The same code can also talk to real Stripe in
+test mode (optional, see the end).
 
-## Status: what is verified, simulated, and still to be measured
+Companion code for the article in [`ARTICLE.md`](ARTICLE.md):
+*I replaced payment polling with webhooks, then killed the endpoint: what I learned.*
 
-| | Status |
-|---|---|
-| **Code behaviour** | Verified by 30 automated tests and a phone-flow self-test. Signatures use Stripe's own SDK code; SQLite, Express and the scripts run for real. |
-| **Real Stripe API** | All four API-calling scripts reached `api.stripe.com` and handled its real 401 (invalid key) correctly. No real payment has been made. |
-| **Simulated results** | `demo-results/` only, from a local fake Stripe. **Not Stripe data; never publish.** |
-| **Real measurements** | **None yet.** `ARTICLE-RESULTS.md` lists every article value as [PENDING]. After the live run, `./exp analyze` fills them in at `results/article-values.md`. |
-| **Stripe claims** | Checked against docs.stripe.com, with quotes, in `STRIPE-CLAIMS.md`. |
+## Quick start
 
-## Contents
-
-```
-create-payments.js ──► Stripe ──POST per event──► receiver.js ──┐
-                         ▲                                       ├─► payments.db (SQLite)
-poll.js  (every 60 s) ───┤ GET /v1/payment_intents               │
-reconcile.js (hourly) ───┤ GET /v1/events                        │
-snapshot-pending.js ─────┘ GET /v1/events?delivery_success=false ┘
-                                       analyze.js ──► results/ (summary, article values, CSVs, chart)
-```
-
-| Path | What it is |
-|---|---|
-| `exp` | **One command per step** (`./exp help`). Guards stop mistakes; every step goes to `logs/timeline.log` |
-| `create-payments.js` | Test PaymentIntents (`pm_card_visa`), 5–30 s apart, tagged `smoke` / `side-by-side` / `outage` / `lost-event` |
-| `poll.js` | The poller: PaymentIntents created since a cursor, every 60 s |
-| `receiver.js` | Webhook route on 127.0.0.1: raw body, signature check, event-ID dedupe, every delivery logged |
-| `reconcile.js` | Catch-up job: any `payment_intent.succeeded` event the app never recorded |
-| `snapshot-pending.js` | During the outage: Stripe's own list of undelivered events |
-| `simulate-lost-event.js` | Forgets one delivered event so reconcile can recover it (only `lost-event` payments) |
-| `analyze.js` | Numbers, raw-timestamp CSVs, chart, article values |
-| `ARTICLE-RESULTS.md` | Every article [FILL] in order, all [PENDING] until the real run |
-| `STRIPE-CLAIMS.md` | Each Stripe claim with the documentation quote it was checked against |
-| `evidence/` | Where screenshots go and where every other piece of evidence lands |
-| `manual/dashboard-delivery-attempts.csv` | You copy failed delivery attempts here from the Dashboard |
-| `results/` | Real results (empty until the live run) |
-| `demo-results/` | Simulated demo output, labelled as such |
-| `scripts/` | `bg.sh` (background processes), `doctor.js`, `exp-status.js`, `measure-tunnel.sh`, `sample-request.js`, `article-template.js`, `demo.js` |
-| `test/` | `npm test` (30 tests) and `npm run selftest` (phone flow, ~3 min) |
-
----
-
-# Runbook: GitHub Codespaces from a phone
-
-Everything runs in one Codespace, so all timestamps share one clock. Total time is about **5–7
-hours**, mostly waiting. Use your phone's browser (desktop-site mode helps the editor). Codespaces
-itself wasn't tested by the author; `./exp doctor` and `./exp smoke` are what prove your setup works.
-
-## Step 1: GitHub settings (once, about 3 min)
-
-On github.com: profile picture → **Settings → Codespaces**:
-
-1. **Default idle timeout**: set it to the maximum offered (GitHub documents 240 minutes). The
-   Codespace stops after that long without you touching it, and the experiment's processes stop
-   with it. You'll check in every 3 hours or less.
-2. **Codespaces secrets → New secret**:
-   - Name: `STRIPE_SECRET_KEY`
-   - Value: a Stripe **test-mode** key (step 2 says how to get one)
-   - Repository access: this repository
-
-   The key then reaches the Codespace as an environment variable and never sits in a file. If you
-   skip this, use `./exp set-api-key` later.
-3. **Settings → Billing**: check your free Codespaces hours. A 2-core machine for ~7 hours fits most free allowances.
-
-## Step 2: Stripe test-mode key (about 3 min)
-
-In the Stripe Dashboard, switch on **Test mode** (or open a sandbox), then **Developers → API keys**:
-
-- Best: **Create restricted key** with *PaymentIntents: Write* and *Events: Read* (`rk_test_…`).
-- Or copy the standard **Secret key** (`sk_test_…`).
-
-Never paste a key into chat, a commit or a screenshot. If one leaks, roll it on the same page.
-
-## Step 3: Create the Codespace (about 5 min)
-
-1. Open the repository on github.com → branch `claude/stripe-webhook-polling-test-p6dx3f` →
-   **Code → Codespaces → Create codespace on claude/stripe-webhook-polling-test-p6dx3f**.
-   The repo's `.devcontainer` gives Node 22 and runs `npm install` automatically.
-2. When the editor opens, open a terminal (☰ menu → **Terminal → New Terminal**) and run:
+You need [Node.js](https://nodejs.org) 22 or later.
 
 ```sh
 cd stripe-webhooks-vs-polling
-npm test                      # expect: pass 30, fail 0
-STRIPE_WEBHOOK_SECRET=whsec_placeholder_for_port ./exp receiver   # starts port 3000 (real secret comes in step 5)
-./exp url                     # prints the public URL to register
+npm install
+npm test        # 19 automated tests, about 10 seconds
+npm run demo    # the whole story in five scenarios, about a minute
 ```
 
-3. **Ports** panel (bottom of the editor; ☰ → View → Ports if hidden): long-press port **3000** →
-   **Port Visibility → Public**. Without this, Stripe can't reach the receiver.
+`npm run demo` prints each scenario and writes `demo-output/`: a transcript (`demo-output.md`), a
+chart (`polling-vs-webhooks.svg`) and one raw webhook request (`sample-webhook-request.txt`).
 
-## Step 4: Register the webhook in Stripe (about 3 min)
+## The idea in two paragraphs
 
-Dashboard, **Test mode**: **Workbench → Webhooks → Create an event destination**
+An online shop needs to know when a payment succeeds, so it can ship the order. The payment happens
+at Stripe, not in the shop's own code, so the shop has to find out somehow.
 
-| Setting | Choose |
+- **Polling** means the shop *asks* Stripe on a timer: "any new payments since last time?" It calls
+  Stripe's API (a URL the shop sends HTTP requests to) every N seconds. Simple, but the answer is
+  only as fresh as the last question, and most questions get "nothing new".
+- **A webhook** means Stripe *tells* the shop: when a payment succeeds, Stripe sends an HTTP POST
+  request to a URL the shop registered (the **webhook endpoint**). The news arrives right away and
+  costs the shop no requests. But now the shop must be reachable, must check the request really
+  came from Stripe, and must cope when it was down or gets the same message twice.
+
+## What's in the project
+
+| File | What it does |
 |---|---|
-| Events from | **Your account** |
-| Payload format | **Snapshot** (not the default Thin: the receiver reads `event.data.object`) |
-| API version | as offered |
-| Events | **`payment_intent.succeeded`** only |
-| Destination type | **Webhook endpoint** |
-| Endpoint URL | the `Register in Stripe:` line from `./exp url` (ends in `/webhooks/stripe`) |
+| `fake-stripe.js` | **The simulation.** A small HTTP server that answers the Stripe API calls this project makes and POSTs signed webhook events, with retries. Run it alone (`npm run fake-stripe`) or let the demo start it |
+| `create-payments.js` | Creates test payments through the Stripe API and records the moment each one succeeded |
+| `poll.js` | **The polling version.** Every N seconds, lists payments created since the last run and records the succeeded ones |
+| `receiver.js` | **The webhook version.** An Express server with one route, `POST /webhooks/stripe`: verifies the signature, ignores duplicates, records the payment, answers 200 |
+| `reconcile.js` | **The safety net.** Reads Stripe's list of `payment_intent.succeeded` events and processes any the receiver never recorded |
+| `report.js` | Prints each payment, which method found it, how long it took, API requests made and duplicates ignored |
+| `demo.js` | Runs five scenarios end to end, checks the results, writes `demo-output/` |
+| `lib/db.js` | The SQLite database (one file, `payments.db`) and the two helpers everything shares: `markSeen` and `processEventOnce` |
+| `lib/stripe-client.js` | Creates the official Stripe SDK client, pointed at the fake or at real Stripe; refuses live keys |
+| `lib/report.js`, `lib/chart.js`, `lib/stats.js`, `lib/loop.js`, `lib/env.js` | Delay calculations, the SVG chart, median, the "run every N seconds" timer, `.env` loading |
+| `test/` | Tests for the receiver, the database helpers, the fake Stripe itself, and the whole demo |
 
-Then on the destination's page: **Reveal secret**, copy the `whsec_…` value, and take the
-`endpoint-settings` screenshot **with the secret hidden** (see `evidence/README.md`).
+## How the pieces talk to each other
 
-## Step 5: Connect and smoke-test (about 5 min)
-
-```sh
-./exp set-webhook-secret      # paste the whsec_… value (hidden); restarts the receiver with it
-./exp doctor                  # every line should start with ✓
-./exp smoke                   # one real test payment; must end with "received by webhook"
-./exp tunnel                  # what the public URL adds → logs/tunnel-latency.txt
+```
+                         ┌───────────────────────────────┐
+  create-payments.js ───►│  Stripe API                    │   real Stripe, or fake-stripe.js
+   POST /v1/payment_intents                               │   on http://127.0.0.1:12111
+                         │                                │
+  poll.js ──────────────►│  GET /v1/payment_intents       │   "anything new?" (every N seconds)
+  reconcile.js ─────────►│  GET /v1/events                │   "which success events exist?"
+                         └───────────────┬───────────────┘
+                                         │ POST /webhooks/stripe   (when a payment succeeds;
+                                         ▼                          retried if it fails)
+                                   receiver.js  (http://127.0.0.1:3000)
+                                         │
+     poll.js, receiver.js, reconcile.js  ▼
+                                   payments.db (SQLite)
 ```
 
-If `smoke` fails, open the destination's **Event deliveries** in the Dashboard: 400 = wrong secret;
-404 = URL must end in `/webhooks/stripe`; 502/timeout = port 3000 not Public or receiver down; no
-delivery at all = wrong event type or Thin payload. If deliveries return 502 while the receiver runs,
-restart it listening on all interfaces (acceptable inside a Codespace):
-`./scripts/bg.sh stop receiver && HOST=0.0.0.0 ./scripts/bg.sh start receiver`.
+All the scripts use the **official Stripe Node.js SDK** (`stripe` on npm). When `STRIPE_API_BASE`
+is set (as in `.env.example`), the SDK sends its requests to the fake instead of `api.stripe.com`;
+no other code changes. The fake sends webhooks signed the same way Stripe does, so the receiver's
+real signature check runs unchanged.
 
-## Step 6 (phase A): the quiet hour (65 min)
+### The database, in one minute
 
-```sh
-./exp quiet                   # starts the 60-second poller; prints when payments may start
-```
+SQLite stores the whole database in one file (`payments.db`), so several small processes can share
+it without a database server. Six tables:
 
-Create **no** payments for 65 minutes, and touch the Codespace once in a while (`./exp status`).
-The quiet-hour figure is the 60 minutes right before the first side-by-side payment; `./exp
-payments` refuses to start earlier.
+| Table | What a row means |
+|---|---|
+| `payments` | We created this payment, and it succeeded at `created_ms` |
+| `seen` | Method `poll`, `webhook` or `reconcile` found this payment at `seen_ms`. **Delay = `seen_ms − created_ms`** |
+| `processed_events` | We have processed this Stripe **event ID**. This is what makes duplicates harmless |
+| `deliveries` | A webhook request arrived (duplicates included) |
+| `api_calls` | Our code made one HTTP request to Stripe (to count what polling costs) |
+| `state` | The poller's cursor |
 
-## Step 7 (phase B): side by side (about 90 min)
+## Polling in this project (`poll.js`)
 
-```sh
-./exp payments                # 100 payments, 5–30 s apart, in the background (~30 min)
-./exp status                  # progress: created / seen by poll / seen by webhook
-```
+Every N seconds (10 by default; a cron job would typically use 60), `pollOnce()`:
 
-Leave the poller running **60 minutes after the first payment**; `./exp outage-start` refuses to
-start earlier, so the "API calls during the test" number is complete.
+1. reads the **cursor**: the Stripe `created` timestamp (whole seconds) of the newest payment it has seen;
+2. asks the API for payments created at or after the cursor: `GET /v1/payment_intents?created[gte]=…`;
+3. records each `succeeded` one in `seen` with method `poll`;
+4. moves the cursor to the newest `created` time it found.
 
-## Step 8 (phase C): kill the endpoint (10 min to a few hours)
+Two costs follow directly. **Delay:** a payment that succeeds just after a poll waits almost a whole
+interval. **Requests:** the poller asks even when nothing happened. And one design flaw (scenario 2):
+because the cursor follows the time a payment was *created*, a payment that is created but succeeds
+later (after 3-D Secure, a bank's extra check) can be skipped forever.
 
-```sh
-./exp outage-start            # stops poller + receiver (public URL stays up), starts Stripe pending
-                              # snapshots, creates 5 outage payments
-```
+## Webhooks in this project (`receiver.js`)
 
-Now, in the Dashboard: **Event deliveries** → screenshot `outage-deliveries-failed` and copy every
-failed attempt into `manual/dashboard-delivery-attempts.csv` (open it in the editor; one row per
-attempt: `event_id,attempted_at_utc,result,next_retry_at_utc,notes`).
+Stripe sends a **webhook event**: a JSON object with an `id` (like `evt_…`), a `type` (here
+`payment_intent.succeeded`) and the payment itself in `data.object`. For each request, the receiver:
 
-After **at least 10 minutes** (`./exp outage-end` refuses earlier, so at least one retry arrives
-more than 300 s after its event and proves the fresh signature):
+1. **Reads the raw body.** It uses `express.raw`, not `express.json`, because the signature covers the
+   exact bytes sent; parsing and re-encoding the JSON first would break the check.
+2. **Verifies the signature.** Stripe signs each request with a secret only you and Stripe know (the
+   `whsec_…` **signing secret**) and puts the result, plus a timestamp, in the `Stripe-Signature`
+   header. `stripe.webhooks.constructEvent()` recomputes the signature (an **HMAC**, a keyed hash) and
+   rejects mismatches and timestamps older than 5 minutes. Anyone can POST to your URL; this is how
+   you know it was Stripe.
+3. **Processes each event ID once.** In one database **transaction** (all-or-nothing), it records the
+   event ID in `processed_events` and the payment in `seen`. If the ID is already there, it's a
+   **duplicate** and nothing happens. If the work fails, nothing is recorded and the receiver answers
+   500, so Stripe will retry and the retry can succeed. Handling a repeated message safely like this
+   is called being **idempotent**.
+4. **Answers 200 quickly.** Any 2xx tells Stripe "delivered". Anything else, a timeout or no answer at
+   all makes Stripe **retry** the same event (same event ID) later.
 
-```sh
-./exp outage-end              # receiver back up. Do NOT press Resend in the Dashboard
-./exp outage-status           # repeat every hour or so; Stripe retries sandbox events 3 times over a few hours
-```
+## The five scenarios (`npm run demo`)
 
-Keep adding attempts to the CSV as they appear. When `outage-status` shows `undelivered: 0`:
+| # | Scenario | What happens | What it shows |
+|---|---|---|---|
+| 1 | Side by side | Poller and receiver run together; 10 payments | Polling delay ranges from 0 to one interval; webhooks arrive in milliseconds; the poller pays for empty polls |
+| 2 | Late success | A 3-D Secure payment succeeds after a newer payment moved the cursor | The poller never sees it; the webhook does |
+| 3 | Endpoint down | Receiver stopped, 3 payments, receiver back 2.5 s later | Deliveries fail, automatic retries deliver everything once it's back; outage becomes delay |
+| 4 | Duplicate | The same event is delivered twice | The event-ID table turns the second delivery into a no-op |
+| 5 | Retries run out | Receiver down longer than the whole retry schedule | The app silently misses the payments; `reconcile.js` finds them in the events list; a second run changes nothing |
 
-```sh
-./exp outage-finish           # stops the snapshots
-```
+Each scenario checks its own outcome and the demo fails if any check fails (`npm test` runs it too,
+faster). A recent run's transcript is committed in `demo-output/demo-output.md`.
 
-Take the `outage-deliveries-final` screenshot. If the Dashboard shows no retries left but a payment
-never arrived, run `./exp outage-finish --force`: that is a lost payment, and reconcile recovers it next.
+## Reproduce it by hand (four terminals)
 
-## Step 9 (phases D and E): analyze, then the catch-up demo (about 5 min)
-
-```sh
-./exp analyze                 # results/ first, before anything else touches the data
-./exp lost-event              # dedicated payment → forgotten → reconcile recovers it → second run recovers 0
-```
-
-`lost-event` re-runs the analysis. Upload the three screenshots to `evidence/screenshots/` (Explorer
-→ long-press the folder → Upload…), then run `./exp analyze` once more so they're linked.
-
-## Step 10: commit the evidence and clean up
-
-```sh
-git status                    # .env must NOT be listed
-git add results manual evidence
-git add -f logs/timeline.log logs/tunnel-latency.txt logs/reconcile-demo.log
-git commit -m "Real test-mode results" && git push
-./exp stop-all
-```
-
-Then in Stripe disable or delete the test destination, and on GitHub stop or delete the Codespace.
-**Article values** are now in `results/article-values.md`; anything still [PENDING] says where it comes from.
-
-## Running on a computer instead
-
-Same commands. Instead of Codespaces port forwarding, run a tunnel and tell `exp` its URL:
+This runs each component as its own process, so you can watch the logs and kill things yourself.
 
 ```sh
-cloudflared tunnel --url http://localhost:3000       # free URLs change on restart: don't restart it mid-run
-./exp set-url https://<random>.trycloudflare.com "cloudflared $(cloudflared --version | awk '{print $3}')"
-./exp set-api-key                                     # if not using an environment variable
+cp .env.example .env          # works as-is with the fake Stripe; no real keys involved
+npm run reset                 # optional: start with an empty database
 ```
 
-Keep the computer awake (macOS `caffeinate -dimsu`; Linux `systemd-inhibit --what=sleep:idle sleep infinity`;
-Windows: never sleep when plugged in, and use WSL). `crontab.example` has cron lines if you prefer cron to `./exp`.
-
----
-
-## What the numbers mean
-
-- **Delay**, for both methods: the moment the poller or receiver **wrote** the payment ID to SQLite,
-  minus the moment the create call returned a succeeded PaymentIntent (`Date.now()`, same machine).
-  That start point stands in for "payment succeeded": Stripe only gives whole seconds. The receiver's
-  arrival time is kept too; the summary shows arrival → write takes milliseconds.
-- **Percentiles** are nearest-rank, so p95 is always a delay that happened. All times are UTC.
-- **API calls** count every HTTP attempt (list pages and the SDK's automatic retries included), per script.
-- The summary marks numbers **NOT VALID** / **INCOMPLETE** when a phase didn't meet its timing
-  rule, and shows the poll interval actually measured (should be 60 s).
-- Webhook delays include the tunnel or port forwarding (measured by `./exp tunnel`).
-- Retry timing is **sandbox** timing ("three times over the course of a few hours"), not live mode
-  ("up to three days with an exponential back off").
-
-### What this run cannot show
-
-The poller's `created` cursor misses payments that succeed late. A payment still pending (for
-example, waiting on 3D Secure) is skipped; if a newer payment succeeds meanwhile, the cursor moves
-past it and it is never listed again. That is a flaw in polling *objects by creation time*, not in
-polling itself: polling the events list (what `reconcile.js` does) avoids it. `pm_card_visa`
-succeeds instantly, so **this run cannot demonstrate the miss**. Don't report it as measured.
-
-## Changes from the article's code, and why
-
-| Article code | Problem | Fix here |
+| Terminal | Command | What you'll see |
 |---|---|---|
-| `journal_mode = WAL` only | Several processes write one SQLite file; without a busy timeout a colliding write fails at once | `busy_timeout = 5000` |
-| Insert event ID, *then* do the work | If the work throws, the event counts as processed but nothing happened, and every retry is skipped | One transaction; on failure the receiver returns 500 so Stripe retries (tested) |
-| Receiver creates `new Stripe(STRIPE_SECRET_KEY)` | Checking signatures needs only `whsec_` | `Stripe.webhooks.constructEvent`, no API key on the receiver |
-| `app.listen(3000)` | Listens on every network interface | `127.0.0.1` by default (`HOST` overrides) |
-| One `payments` table for everything | Phases mix in the statistics | `phase` column; smoke / outage / lost-event payments excluded from the delay statistics |
-| Duplicates only printed | Not enough for the retry table, ordering or the `t=` check | `deliveries` table with signature `t=` and a duplicate flag |
-| Outage times noted by hand | Easy to get wrong | `receiver_runs` + `logs/timeline.log` |
-| "Delete one event's rows" to show reconcile | Deleting a measured payment corrupts the outage numbers | Dedicated `lost-event` payment; the script refuses others |
-| No guard on the key | A live key would make real charges | Only `sk_test_` / `rk_test_`, never the `.env.example` placeholders |
-| cron only | Not available in Codespaces / Windows | `--every` loops and `scripts/bg.sh`, same 60 s / hourly intervals |
+| 1 | `npm run fake-stripe` | Every delivery attempt: `HTTP 200`, `connection refused; next retry in 10 s`, `giving up` |
+| 2 | `npm run receiver` | `new evt_… payment_intent.succeeded pi_…` (add `LOG_REQUESTS=1` in front to print each raw request) |
+| 3 | `npm run poll` | `poll: 1 new payment(s)` every 10 s, often `0 new` |
+| 4 | `npm run pay` | Three test payments, 1–3 s apart |
+
+Then, in terminal 4:
+
+```sh
+npm run report                # each payment: poll delay vs webhook delay, API requests, duplicates
+```
+
+**Kill the endpoint.** Press Ctrl+C in terminal 2, run `npm run pay` in terminal 4, and watch
+terminal 1 log failed attempts. Start `npm run receiver` again within 100 s (the fake retries 10 s,
+40 s and 100 s after the first attempt) and a retry delivers. `npm run report` shows the bigger webhook delays.
+
+**Let the retries run out.** Stop the receiver, `npm run pay`, wait until terminal 1 says
+`giving up` (100 s after the payment), start the receiver again. `npm run report` shows webhook
+`never` for those payments. Now run `npm run reconcile`: it prints `recovered evt_…`. Run it again:
+`0 recovered`.
+
+**Send a duplicate.** Copy an `evt_sim_…` ID from terminal 2, then:
+`curl -X POST http://127.0.0.1:12111/_sim/events/evt_sim_000002/resend` (with your ID). Terminal 2
+prints `duplicate evt_sim_…`.
+
+**Miss a late success with polling.**
+
+```sh
+node create-payments.js --payment-method pm_card_threeDSecure2Required   # prints pi_sim_… requires_action
+npm run pay -- --count 1                                                # a newer payment moves the cursor
+# wait for the next poll in terminal 3, then let the first payment "finish 3-D Secure":
+curl -X POST http://127.0.0.1:12111/_sim/payment_intents/pi_sim_XXXXXX/succeed
+npm run report                                                          # that payment: poll never, webhook yes
+```
+
+The `/_sim/…` URLs exist only in the fake. They stand in for things that happen outside your code at
+real Stripe (a customer finishing 3-D Secure; Stripe sending an event twice).
+
+## What the results demonstrate, and what they don't
+
+They demonstrate **mechanisms**, with your own code doing the work:
+
+- polling delay is bounded by the poll interval, and polling costs requests even when idle;
+- webhooks arrive as the event happens and cost no requests;
+- a down endpoint turns into *delay* while retries last, and into *silently missing data* after;
+- duplicate deliveries are harmless only because of the event-ID table;
+- a poller that follows `created` can miss late successes;
+- a reconcile job over the events list recovers what the webhook path missed, without double-processing.
+
+## Limits of the simulation
+
+- **It is not Stripe.** `fake-stripe.js` imitates only the calls this project makes, with the same
+  request and response shapes and the same signature scheme. Real Stripe has many more fields,
+  headers and behaviours.
+- **The numbers aren't real-world measurements.** Everything runs on one machine, so webhook delays
+  of ~0.02 s have no internet in them. The demo polls every 5 s and retries after 1, 2 and 4 s so it
+  finishes in a minute. A real cron poller often runs every 60 s, and real Stripe retries over hours
+  or days (below).
+- **Ordering and timing are simplified.** The fake delivers in order on a fixed schedule. Real
+  Stripe doesn't guarantee order.
+- **Stripe's own duplicate cases are only partly modelled.** The fake re-sends the same event ID.
+  Stripe also documents rare cases of two different event objects for the same payment, which an
+  event-ID check alone doesn't catch (this project's `seen` table, keyed by payment ID, does).
+- **Delay is measured from the moment the create call returned**, since that's when our code learns
+  the payment succeeded.
+
+## What real Stripe does (checked against docs.stripe.com, November 2026)
+
+| Topic | Stripe's documentation says |
+|---|---|
+| Retries, live mode | "Stripe attempts to deliver events to your destination for up to three days with an exponential back off in live mode." ([webhooks](https://docs.stripe.com/webhooks)) |
+| Retries, test mode | "We retry event deliveries created in a sandbox three times over the course of a few hours." (same page) |
+| Signatures | "Stripe signs every webhook event by including a signature in the Stripe-Signature header." Each retry gets "a new signature and timestamp". (same page) |
+| Signature age | "Our libraries have a default tolerance of 5 minutes between the timestamp and the current time." (same page) |
+| Duplicates | "Webhook endpoints might occasionally receive the same event more than once." and "In some cases, two separate Event objects are generated and sent." (same page) |
+| Order | "Stripe doesn't guarantee the delivery of events in the order that they're generated." (same page) |
+| Reply fast | "Quickly returns a successful status code (2xx) before any complex logic that might cause a timeout." (same page) |
+| Events history | "List events, going back up to 30 days." ([list events](https://docs.stripe.com/api/events/list)) |
+| Catching up | Use the List Events API with `delivery_success=false` to find undelivered events ([process undelivered events](https://docs.stripe.com/webhooks/process-undelivered-events)) |
+| Test cards | Use test PaymentMethods such as `pm_card_visa` ([testing](https://docs.stripe.com/testing)) |
+
+## Optional: real Stripe in test mode
+
+Not needed for anything above, and **not tested by the author against a real account**. It uses the
+[Stripe CLI](https://docs.stripe.com/stripe-cli) to forward real test-mode webhooks to your
+localhost, so you don't need a public URL.
+
+1. In the Stripe Dashboard, switch on **Test mode** and copy your **Secret key** (`sk_test_…`)
+   from Developers → API keys. The scripts refuse live (`sk_live_…`) keys.
+2. In `.env`: set `STRIPE_SECRET_KEY` to that key and **delete the `STRIPE_API_BASE` line**.
+3. `stripe login`, then `stripe listen --forward-to localhost:3000/webhooks/stripe`. It prints a
+   `whsec_…` secret: put it in `.env` as `STRIPE_WEBHOOK_SECRET`.
+4. Run `npm run receiver`, `npm run poll`, `npm run pay`, `npm run report` and `npm run reconcile`
+   as above.
+
+The outage scenarios depend on Stripe's retry schedule (hours in test mode), and whether
+`stripe listen` retries like a registered endpoint isn't documented on the pages above, so use the
+simulation for those. Never commit `.env`; it's in `.gitignore`.
 
 ## Tests
 
 ```sh
-npm test            # 30 tests, ~5 s
-npm run demo        # whole experiment against a fake Stripe, ~2 min → demo-results/ (SIMULATED)
-npm run selftest    # every ./exp step in runbook order against a fake Stripe, ~3 min, temp data dir
+npm test
 ```
 
-- `unit`: statistics, idempotent writes, transaction rollback, test-key guard.
-- `receiver`: valid/invalid/edited/re-serialized/stale/missing signatures, duplicates, charset, failed work → 500 → retry succeeds.
-- `analysis`: delay statistics, quiet-hour window rules, during-test completeness, same-payment duplicates, Dashboard CSV, request redaction.
-- `article`: `ARTICLE-RESULTS.md` matches its generator (no invented numbers), article values fill from data, placeholder keys refused, simulated data refused in `results/`.
-- `pipeline`: create → poll → webhook → outage with pending snapshots and retries → duplicate → refusal to forget measured payments → lost event → reconcile ×2 → analyze.
-
-The demo and self-test fail if they touch the real `payments.db`, `logs/`, `results/`, `run/` or `.env`.
-
-### Behind an HTTPS proxy
-
-In a sandbox whose only internet access is an HTTPS proxy (like the Claude cloud session this was
-built in), Node's default HTTPS client ignores the proxy. Run the scripts with
-`STRIPE_HTTP_CLIENT=fetch NODE_USE_ENV_PROXY=1` (Node ≥ 22.21). Codespaces and normal computers don't need this.
+- `test/receiver.test.js`: valid signature, wrong secret, edited body, re-formatted JSON, timestamp
+  older than 5 minutes, missing header, duplicate delivery, failed work → 500 → retry succeeds.
+- `test/unit.test.js`: the database helpers (including the rollback), the test-key guard, the
+  report's delay maths, the timer.
+- `test/fake-stripe.test.js`: the fake behaves like the Stripe features we rely on (key check,
+  signed deliveries, retries reusing the event ID, giving up, the undelivered-events filter, resend,
+  the 3-D Secure flow). Signatures are verified with the Stripe SDK.
+- `test/demo.test.js`: all five scenarios, with faster timings; every check must pass.

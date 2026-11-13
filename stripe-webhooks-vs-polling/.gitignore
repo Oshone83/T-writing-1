@@ -3,6 +3,3 @@ node_modules/
 *.db
 *.db-wal
 *.db-shm
-/logs/
-run/
-.env.tmp
