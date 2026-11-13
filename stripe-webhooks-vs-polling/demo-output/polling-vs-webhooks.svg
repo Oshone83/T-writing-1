@@ -31,24 +31,24 @@
 <text class="tick" x="876.0" y="382" text-anchor="middle">10</text>
 <text class="axis" x="470" y="406" text-anchor="middle">Seconds since the first payment</text>
 <text class="axis" transform="translate(18 220) rotate(-90)" text-anchor="middle">Delay (s)</text>
-<circle class="poll" cx="64.0" cy="76.9" r="5"><title>Polling · pi_sim_000001 · delay 4.99 s</title></circle>
-<circle class="poll" cx="149.1" cy="137.2" r="5"><title>Polling · pi_sim_000003 · delay 3.94 s</title></circle>
-<circle class="poll" cx="259.0" cy="215.2" r="5"><title>Polling · pi_sim_000005 · delay 2.58 s</title></circle>
-<circle class="poll" cx="383.4" cy="303.4" r="5"><title>Polling · pi_sim_000007 · delay 1.05 s</title></circle>
-<circle class="poll" cx="498.7" cy="97.1" r="5"><title>Polling · pi_sim_000009 · delay 4.63 s</title></circle>
-<circle class="poll" cx="559.6" cy="140.3" r="5"><title>Polling · pi_sim_000011 · delay 3.88 s</title></circle>
-<circle class="poll" cx="619.9" cy="183.1" r="5"><title>Polling · pi_sim_000013 · delay 3.14 s</title></circle>
-<circle class="poll" cx="671.6" cy="219.8" r="5"><title>Polling · pi_sim_000015 · delay 2.50 s</title></circle>
-<circle class="poll" cx="726.2" cy="258.5" r="5"><title>Polling · pi_sim_000017 · delay 1.83 s</title></circle>
-<circle class="poll" cx="779.5" cy="296.4" r="5"><title>Polling · pi_sim_000019 · delay 1.17 s</title></circle>
+<circle class="poll" cx="64.0" cy="77.1" r="5"><title>Polling · pi_sim_000001 · delay 4.98 s</title></circle>
+<circle class="poll" cx="154.4" cy="141.2" r="5"><title>Polling · pi_sim_000003 · delay 3.87 s</title></circle>
+<circle class="poll" cx="199.8" cy="173.4" r="5"><title>Polling · pi_sim_000005 · delay 3.31 s</title></circle>
+<circle class="poll" cx="355.8" cy="284.1" r="5"><title>Polling · pi_sim_000007 · delay 1.39 s</title></circle>
+<circle class="poll" cx="461.9" cy="359.3" r="5"><title>Polling · pi_sim_000009 · delay 0.08 s</title></circle>
+<circle class="poll" cx="590.7" cy="162.6" r="5"><title>Polling · pi_sim_000011 · delay 3.50 s</title></circle>
+<circle class="poll" cx="631.8" cy="191.8" r="5"><title>Polling · pi_sim_000013 · delay 2.99 s</title></circle>
+<circle class="poll" cx="721.2" cy="255.2" r="5"><title>Polling · pi_sim_000015 · delay 1.89 s</title></circle>
+<circle class="poll" cx="757.6" cy="281.0" r="5"><title>Polling · pi_sim_000017 · delay 1.44 s</title></circle>
+<circle class="poll" cx="824.1" cy="328.2" r="5"><title>Polling · pi_sim_000019 · delay 0.62 s</title></circle>
 <rect class="webhook" x="59.5" y="357.5" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000001 · delay 0.04 s</title></rect>
-<rect class="webhook" x="144.6" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000003 · delay 0.02 s</title></rect>
-<rect class="webhook" x="254.5" y="358.1" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000005 · delay 0.02 s</title></rect>
-<rect class="webhook" x="378.9" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000007 · delay 0.02 s</title></rect>
-<rect class="webhook" x="494.2" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000009 · delay 0.02 s</title></rect>
-<rect class="webhook" x="555.1" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000011 · delay 0.02 s</title></rect>
-<rect class="webhook" x="615.4" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000013 · delay 0.02 s</title></rect>
-<rect class="webhook" x="667.1" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000015 · delay 0.02 s</title></rect>
-<rect class="webhook" x="721.7" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000017 · delay 0.02 s</title></rect>
-<rect class="webhook" x="775.0" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000019 · delay 0.02 s</title></rect>
+<rect class="webhook" x="149.9" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000003 · delay 0.02 s</title></rect>
+<rect class="webhook" x="195.3" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000005 · delay 0.02 s</title></rect>
+<rect class="webhook" x="351.3" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000007 · delay 0.02 s</title></rect>
+<rect class="webhook" x="457.4" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000009 · delay 0.02 s</title></rect>
+<rect class="webhook" x="586.2" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000011 · delay 0.02 s</title></rect>
+<rect class="webhook" x="627.3" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000013 · delay 0.02 s</title></rect>
+<rect class="webhook" x="716.7" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000015 · delay 0.02 s</title></rect>
+<rect class="webhook" x="753.1" y="358.2" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000017 · delay 0.02 s</title></rect>
+<rect class="webhook" x="819.6" y="358.3" width="9" height="9" rx="1.5"><title>Webhook · pi_sim_000019 · delay 0.02 s</title></rect>
 </svg>

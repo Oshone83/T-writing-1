@@ -164,5 +164,5 @@ if (isMain(import.meta.url)) {
   });
   const at = await fake.start(Number(base.port));
   console.log(`fake Stripe (SIMULATION) listening on ${at}`);
-  console.log(`webhooks go to ${webhookUrl}; retries after ${retrySeconds.join(', ')} s, then it gives up`);
+  console.log(`webhooks go to ${webhookUrl}; on failure it waits ${retrySeconds.join(', ')} s between attempts, then gives up`);
 }

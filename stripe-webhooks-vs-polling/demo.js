@@ -25,9 +25,10 @@ import { createPayment, createPayments } from './create-payments.js';
 // Simulated timings. Real-world equivalents are in the README ("Limits of the simulation").
 export const DEFAULT_TIMINGS = {
   pollEveryMs: 5000,                  // a cron poller would typically run every 60 s
-  retryDelaysMs: [1000, 2000, 4000],  // Stripe test mode: 3 retries over a few hours; live: up to 3 days
+  retryDelaysMs: [1000, 2000, 4000],  // the fake's wait before retry 1, 2, 3. Stripe (per its docs): sandbox
+                                      // 3 retries over a few hours; live mode up to 3 days
   payments: 10, minGapMs: 300, maxGapMs: 2000,
-  outageMs: 2500,                     // endpoint down for this long in scenario 3
+  outageMs: 2500,                     // scenario 3: receiver stays down this long after the payments
 };
 
 const SECRET = 'whsec_local_simulation_secret';
@@ -79,8 +80,8 @@ export async function runDemo({ timings = DEFAULT_TIMINGS, log = console.log, ou
   const artifacts = {};
 
   say('> **SIMULATED.** Everything below ran against `fake-stripe.js`, a local stand-in for Stripe, with');
-  say(`> compressed timings (poll every ${T.pollEveryMs / 1000} s; webhook retries after ${T.retryDelaysMs.map((x) => x / 1000).join(', ')} s).`);
-  say('> The numbers show the *mechanisms*, not real-world Stripe latency or retry schedules.');
+  say(`> compressed timings: the poller runs every ${T.pollEveryMs / 1000} s; when a webhook delivery fails, the fake waits ${T.retryDelaysMs.map((x) => x / 1000).join(', ')} s between attempts, then gives up.`);
+  say('> The numbers show the *mechanisms*, not real-world Stripe latency or retry schedules. Anything the fake does is labelled "fake Stripe".');
   say();
 
   // ── 1 ────────────────────────────────────────────────────────────────────────────────────────
@@ -153,7 +154,7 @@ export async function runDemo({ timings = DEFAULT_TIMINGS, log = console.log, ou
 
   // ── 3 ────────────────────────────────────────────────────────────────────────────────────────
   say('## 3. I killed the endpoint: retries deliver the events later');
-  say(`The receiver is stopped, 3 payments succeed, and the receiver comes back ${T.outageMs / 1000} s later. Nobody presses "resend".`);
+  say(`The receiver is stopped, 3 payments succeed, and the receiver starts again ${T.outageMs / 1000} s after the payments. Nobody presses "resend".`);
   say('```');
   {
     const w = await makeWorld({ retryDelaysMs: T.retryDelaysMs, say });
@@ -174,12 +175,12 @@ export async function runDemo({ timings = DEFAULT_TIMINGS, log = console.log, ou
     say(`Delay from payment to "app knows" during the outage: ${rows.map((x) => s2(x.webhook_ms - x.created_ms)).join(', ')}.`);
     await w.close();
   }
-  say('What this shows: a failed delivery is not a lost event; Stripe keeps it and tries again. The outage turned into delay, as long as it ended before the retries ran out.');
+  say('What this shows: a failed delivery is not a lost event; the sender keeps it and tries again (here the fake; Stripe documents the same, over hours or days). The outage turned into delay, as long as it ended before the retries ran out.');
   say();
 
   // ── 4 ────────────────────────────────────────────────────────────────────────────────────────
   say('## 4. The same event delivered twice');
-  say('The fake Stripe sends one event a second time, as Stripe occasionally does.');
+  say('The fake Stripe sends one event a second time. Stripe documents that this can occasionally happen.');
   say('```');
   {
     const w = await makeWorld({ retryDelaysMs: T.retryDelaysMs, say });
@@ -200,7 +201,7 @@ export async function runDemo({ timings = DEFAULT_TIMINGS, log = console.log, ou
   // ── 5 ────────────────────────────────────────────────────────────────────────────────────────
   const giveUpMs = T.retryDelaysMs.reduce((x, y) => x + y, 0);
   say('## 5. The retries run out; the reconcile job recovers the events');
-  say(`This time the endpoint stays down longer than the whole retry schedule (${giveUpMs / 1000} s in the simulation), so Stripe gives up.`);
+  say(`This time the endpoint stays down longer than the whole retry schedule (${giveUpMs / 1000} s in the simulation), so the fake gives up on both events.`);
   say('```');
   {
     const w = await makeWorld({ retryDelaysMs: T.retryDelaysMs, say });

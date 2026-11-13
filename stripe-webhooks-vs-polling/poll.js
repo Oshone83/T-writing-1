@@ -27,7 +27,7 @@ export async function pollOnce({ db, stripe, now = Date.now() }) {
   // gte, not gt: two payments can share a second, so we re-read the cursor's second each time.
   // The seen table's primary key makes re-reading harmless. The SDK fetches further pages automatically.
   for await (const pi of stripe.paymentIntents.list({ created: { gte: cursor }, limit: 100 })) {
-    // KNOWN FLAW (demonstrated by `npm run demo`, scenario 6): a payment that is not yet succeeded is
+    // KNOWN FLAW (demonstrated by `npm run demo`, scenario 2): a payment that is not yet succeeded is
     // skipped, and once a newer payment moves the cursor past its `created` time, it is never listed
     // again, even after it succeeds. Polling the events list instead (reconcile.js) avoids this.
     if (pi.status !== 'succeeded') continue;

@@ -32,18 +32,20 @@ at Stripe, not in the shop's own code, so the shop has to find out somehow.
 
 - **Polling** means the shop *asks* Stripe on a timer: "any new payments since last time?" It calls
   Stripe's API (a URL the shop sends HTTP requests to) every N seconds. Simple, but the answer is
-  only as fresh as the last question, and most questions get "nothing new".
+  only as fresh as the last question, and when payments are rare, most questions get "nothing new".
 - **A webhook** means Stripe *tells* the shop: when a payment succeeds, Stripe sends an HTTP POST
   request to a URL the shop registered (the **webhook endpoint**). The news arrives right away and
   costs the shop no requests. But now the shop must be reachable, must check the request really
-  came from Stripe, and must cope when it was down or gets the same message twice.
+  came from Stripe, and must cope when it was down or gets the same message twice. (With real
+  Stripe you register the endpoint URL and choose the event types you want; the fake is simply
+  told the URL.)
 
 ## What's in the project
 
 | File | What it does |
 |---|---|
 | `fake-stripe.js` | **The simulation.** A small HTTP server that answers the Stripe API calls this project makes and POSTs signed webhook events, with retries. Run it alone (`npm run fake-stripe`) or let the demo start it |
-| `create-payments.js` | Creates test payments through the Stripe API and records the moment each one succeeded |
+| `create-payments.js` | Creates test payments through the Stripe API and records the moment the create call returned a succeeded payment |
 | `poll.js` | **The polling version.** Every N seconds, lists payments created since the last run and records the succeeded ones |
 | `receiver.js` | **The webhook version.** An Express server with one route, `POST /webhooks/stripe`: verifies the signature, ignores duplicates, records the payment, answers 200 |
 | `reconcile.js` | **The safety net.** Reads Stripe's list of `payment_intent.succeeded` events and processes any the receiver never recorded |
@@ -68,8 +70,8 @@ at Stripe, not in the shop's own code, so the shop has to find out somehow.
                                          ▼                          retried if it fails)
                                    receiver.js  (http://127.0.0.1:3000)
                                          │
-     poll.js, receiver.js, reconcile.js  ▼
-                                   payments.db (SQLite)
+  create-payments.js, poll.js,           ▼
+  receiver.js, reconcile.js ────►  payments.db (SQLite)
 ```
 
 All the scripts use the **official Stripe Node.js SDK** (`stripe` on npm). When `STRIPE_API_BASE`
@@ -95,7 +97,8 @@ it without a database server. Six tables:
 
 Every N seconds (10 by default; a cron job would typically use 60), `pollOnce()`:
 
-1. reads the **cursor**: the Stripe `created` timestamp (whole seconds) of the newest payment it has seen;
+1. reads the **cursor**, a bookmark stored in the database: the Stripe `created` timestamp (whole
+   seconds) of the newest *succeeded* payment it has seen (on the first run, one hour ago);
 2. asks the API for payments created at or after the cursor: `GET /v1/payment_intents?created[gte]=…`;
 3. records each `succeeded` one in `seen` with method `poll`;
 4. moves the cursor to the newest `created` time it found.
@@ -103,7 +106,11 @@ Every N seconds (10 by default; a cron job would typically use 60), `pollOnce()`
 Two costs follow directly. **Delay:** a payment that succeeds just after a poll waits almost a whole
 interval. **Requests:** the poller asks even when nothing happened. And one design flaw (scenario 2):
 because the cursor follows the time a payment was *created*, a payment that is created but succeeds
-later (after 3-D Secure, a bank's extra check) can be skipped forever.
+later can be skipped forever. Stripe: "If the payment requires additional actions, such as
+authenticating with 3D Secure, the PaymentIntent has a status of requires_action"
+([PaymentIntents lifecycle](https://docs.stripe.com/payments/paymentintents/lifecycle)). Polling
+Stripe's *events* list instead, as `reconcile.js` does, doesn't have this flaw, because a success
+event is created at the moment of success.
 
 ## Webhooks in this project (`receiver.js`)
 
@@ -114,7 +121,7 @@ Stripe sends a **webhook event**: a JSON object with an `id` (like `evt_…`), a
    exact bytes sent; parsing and re-encoding the JSON first would break the check.
 2. **Verifies the signature.** Stripe signs each request with a secret only you and Stripe know (the
    `whsec_…` **signing secret**) and puts the result, plus a timestamp, in the `Stripe-Signature`
-   header. `stripe.webhooks.constructEvent()` recomputes the signature (an **HMAC**, a keyed hash) and
+   header. `Stripe.webhooks.constructEvent()` recomputes the signature (an **HMAC**, a keyed hash) and
    rejects mismatches and timestamps older than 5 minutes. Anyone can POST to your URL; this is how
    you know it was Stripe.
 3. **Processes each event ID once.** In one database **transaction** (all-or-nothing), it records the
@@ -122,8 +129,24 @@ Stripe sends a **webhook event**: a JSON object with an `id` (like `evt_…`), a
    **duplicate** and nothing happens. If the work fails, nothing is recorded and the receiver answers
    500, so Stripe will retry and the retry can succeed. Handling a repeated message safely like this
    is called being **idempotent**.
-4. **Answers 200 quickly.** Any 2xx tells Stripe "delivered". Anything else, a timeout or no answer at
-   all makes Stripe **retry** the same event (same event ID) later.
+4. **Answers 200 quickly.** Any 2xx tells Stripe "delivered". Any other status, a timeout, or no answer
+   at all counts as a failed delivery, and Stripe **retries** the same event (same event ID) later.
+
+### Why the same event can arrive twice
+
+A sender can't always tell whether a delivery worked: if the receiver processed an event but its 200
+response was lost or too slow, the sender sees a failure and tries again. Stripe's docs say endpoints
+"might occasionally receive the same event more than once". So the receiver remembers every event ID
+it has processed (`processed_events`) and skips repeats. The work itself is also safe to repeat here:
+`seen` records each payment ID once per method.
+
+### Reconciliation: catching what webhooks missed
+
+Retries stop eventually. If the endpoint is down longer than that (or deleted, or a bug answered 200
+without recording anything), the event never arrives and nothing complains. **Reconciliation** means
+periodically comparing your records with the provider's. `reconcile.js` lists Stripe's recent
+`payment_intent.succeeded` events and runs any it hasn't processed through the same
+`processEventOnce` as the receiver, so it recovers missed events without ever processing one twice.
 
 ## The five scenarios (`npm run demo`)
 
@@ -131,7 +154,7 @@ Stripe sends a **webhook event**: a JSON object with an `id` (like `evt_…`), a
 |---|---|---|---|
 | 1 | Side by side | Poller and receiver run together; 10 payments | Polling delay ranges from 0 to one interval; webhooks arrive in milliseconds; the poller pays for empty polls |
 | 2 | Late success | A 3-D Secure payment succeeds after a newer payment moved the cursor | The poller never sees it; the webhook does |
-| 3 | Endpoint down | Receiver stopped, 3 payments, receiver back 2.5 s later | Deliveries fail, automatic retries deliver everything once it's back; outage becomes delay |
+| 3 | Endpoint down | Receiver stopped, 3 payments, receiver back 2.5 s after them | Deliveries fail, automatic retries deliver everything once it's back; outage becomes delay |
 | 4 | Duplicate | The same event is delivered twice | The event-ID table turns the second delivery into a no-op |
 | 5 | Retries run out | Receiver down longer than the whole retry schedule | The app silently misses the payments; `reconcile.js` finds them in the events list; a second run changes nothing |
 
@@ -161,8 +184,8 @@ npm run report                # each payment: poll delay vs webhook delay, API r
 ```
 
 **Kill the endpoint.** Press Ctrl+C in terminal 2, run `npm run pay` in terminal 4, and watch
-terminal 1 log failed attempts. Start `npm run receiver` again within 100 s (the fake retries 10 s,
-40 s and 100 s after the first attempt) and a retry delivers. `npm run report` shows the bigger webhook delays.
+terminal 1 log failed attempts. Start `npm run receiver` again within 100 s (the fake waits 10, 30
+and 60 s between attempts, so it retries 10 s, 40 s and 100 s after the first one) and a retry delivers. `npm run report` shows the bigger webhook delays.
 
 **Let the retries run out.** Stop the receiver, `npm run pay`, wait until terminal 1 says
 `giving up` (100 s after the payment), start the receiver again. `npm run report` shows webhook
@@ -193,7 +216,8 @@ They demonstrate **mechanisms**, with your own code doing the work:
 - polling delay is bounded by the poll interval, and polling costs requests even when idle;
 - webhooks arrive as the event happens and cost no requests;
 - a down endpoint turns into *delay* while retries last, and into *silently missing data* after;
-- duplicate deliveries are harmless only because of the event-ID table;
+- duplicate deliveries are harmless because the receiver remembers event IDs (and the work, recording
+  a payment ID, is itself safe to repeat);
 - a poller that follows `created` can miss late successes;
 - a reconcile job over the events list recovers what the webhook path missed, without double-processing.
 
@@ -203,8 +227,8 @@ They demonstrate **mechanisms**, with your own code doing the work:
   request and response shapes and the same signature scheme. Real Stripe has many more fields,
   headers and behaviours.
 - **The numbers aren't real-world measurements.** Everything runs on one machine, so webhook delays
-  of ~0.02 s have no internet in them. The demo polls every 5 s and retries after 1, 2 and 4 s so it
-  finishes in a minute. A real cron poller often runs every 60 s, and real Stripe retries over hours
+  of ~0.02 s have no internet in them. In the demo the poller runs every 5 s, and the fake waits 1,
+  then 2, then 4 s between delivery attempts before giving up, so it finishes in a minute. A real cron poller often runs every 60 s, and real Stripe retries over hours
   or days (below).
 - **Ordering and timing are simplified.** The fake delivers in order on a fixed schedule. Real
   Stripe doesn't guarantee order.
@@ -227,7 +251,8 @@ They demonstrate **mechanisms**, with your own code doing the work:
 | Reply fast | "Quickly returns a successful status code (2xx) before any complex logic that might cause a timeout." (same page) |
 | Events history | "List events, going back up to 30 days." ([list events](https://docs.stripe.com/api/events/list)) |
 | Catching up | Use the List Events API with `delivery_success=false` to find undelivered events ([process undelivered events](https://docs.stripe.com/webhooks/process-undelivered-events)) |
-| Test cards | Use test PaymentMethods such as `pm_card_visa` ([testing](https://docs.stripe.com/testing)) |
+| Late success | "If the payment requires additional actions, such as authenticating with 3D Secure, the PaymentIntent has a status of requires_action." ([PaymentIntents lifecycle](https://docs.stripe.com/payments/paymentintents/lifecycle)) |
+| Test cards | Use test PaymentMethods such as `pm_card_visa`; `pm_card_threeDSecure2Required` is listed too ([testing](https://docs.stripe.com/testing)) |
 
 ## Optional: real Stripe in test mode
 
