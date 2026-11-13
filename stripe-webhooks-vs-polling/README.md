@@ -9,7 +9,7 @@ need no Stripe account, no keys and no public URL. The same code can also talk t
 test mode (optional, see the end).
 
 Companion code for the article in [`ARTICLE.md`](ARTICLE.md):
-*I replaced payment polling with webhooks, then killed the endpoint: what I learned.*
+*I replaced payment polling with webhooks, then killed the endpoint: what I measured.*
 
 ## Quick start
 
